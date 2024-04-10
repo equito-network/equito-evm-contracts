@@ -2,21 +2,20 @@
 
 pragma solidity ^0.8.23;
 
-interface IRouter {
-    struct EquitoMessage {
-        uint256 nonce; // Nonce of the message.
-        uint256 sourceChainSelector; // Source chain selector.
-        bytes sender; // abi.decode(sender) if coming from an EVM chain.
-        uint256 destinationChainSelector; // Destination chain selector.
-        address receiver; // Receiver address
-        bytes data; // payload sent in original message.
-    }
+import {Client} from "../libraries/Client.sol";
 
-    event MessageSendRequested(address indexed sender, EquitoMessage data);
+interface IRouter {
+    error InvalidAddress(bytes encodedAddress);
+
+    event MessageSendRequested(
+        address indexed sender,
+        Client.EquitoMessage data
+    );
+    event MessageSendDelivered(Client.EquitoMessage[] messages);
 
     function sendMessage(
-        EquitoMessage calldata message
+        Client.EquitoMessage calldata message
     ) external returns (bytes32);
 
-    function routeMessages() external;
+    function routeMessages(Client.EquitoMessage[] calldata messages) external;
 }
