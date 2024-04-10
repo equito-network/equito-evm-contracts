@@ -14,7 +14,9 @@ interface IRouter {
     event MessageSendDelivered(Client.EquitoMessage[] messages);
 
     function sendMessage(
-        Client.EquitoMessage calldata message
+        address receiver,
+        uint256 destinationChainSelector,
+        bytes calldata data
     ) external returns (bytes32);
 
     function routeMessages(Client.EquitoMessage[] calldata messages) external;

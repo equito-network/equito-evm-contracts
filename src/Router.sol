@@ -16,20 +16,22 @@ contract Router is IRouter {
     }
 
     function sendMessage(
-        Client.EquitoMessage calldata message
+        address receiver,
+        uint256 destinationChainSelector,
+        bytes calldata data
     ) external returns (bytes32) {
         Client.EquitoMessage memory newMessage = Client.EquitoMessage({
             sourceChainSelector: chainSelector,
             sender: abi.encode(msg.sender),
-            receiver: message.receiver,
-            destinationChainSelector: message.destinationChainSelector,
+            receiver: receiver,
+            destinationChainSelector: destinationChainSelector,
             nonce: _nonce[msg.sender],
-            data: message.data
+            data: data
         });
 
         _nonce[msg.sender] += 1;
 
-        emit MessageSendRequested(msg.sender, message);
+        emit MessageSendRequested(msg.sender, newMessage);
         return Client._hash(newMessage);
     }
 
