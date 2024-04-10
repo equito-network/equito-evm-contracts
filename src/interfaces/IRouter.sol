@@ -17,4 +17,6 @@ interface IRouter {
     function sendMessage(
         EquitoMessage calldata message
     ) external returns (bytes32);
+
+    function routeMessages() external;
 }
