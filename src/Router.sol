@@ -10,13 +10,15 @@ contract Router is IRouter {
     /// The chain selector for the chain where the Router contract is deployed.
     uint256 public chainSelector;
 
+    mapping(bytes32 => bool) public isMessageSent;
+
     constructor(uint256 _chainSelector) {
         chainSelector = _chainSelector;
     }
 
     /// Send a cross-chain message using Equito.
     function sendMessage(
-        bytes receiver,
+        bytes calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
     ) external returns (bytes32) {
@@ -29,15 +31,20 @@ contract Router is IRouter {
             data: data
         });
 
+        bytes32 messageHash = Client._hash(newMessage);
 
-        emit MessageSendRequested(newMessage);
+        if (isMessageSent[messageHash]) revert MessageSentAlready(messageHash);
+
+        emit MessageSendRequested(msg.sender, newMessage);
+        isMessageSent[messageHash] = true;
         return Client._hash(newMessage);
     }
 
     /// Route messages to the appropriate receiver contracts.
     function routeMessages(Client.EquitoMessage[] calldata messages) external {
         for (uint256 i = 0; i < messages.length; i++) {
-            IEquitoReceiver(abi.decode(messages[i].receiver)).receiveMessages(messages);
+            address receiver = abi.decode(messages[i].receiver, (address));
+            IEquitoReceiver(receiver).receiveMessages(messages);
         }
 
         emit MessageSendDelivered(messages);

@@ -8,15 +8,15 @@ library Client {
     /// It's designed to be used by any chain supported by the Equito protocol.
     struct EquitoMessage {
         /// Block number at which the message is emitted.
-        uint256 blockNumber; 
+        uint256 blockNumber;
         // Selector for the source chain, acting as an id.
         uint256 sourceChainSelector;
         // Address of the sender.
-        bytes sender; 
+        bytes sender;
         // Selector for the destination chain, acting as an id.
         uint256 destinationChainSelector;
         // Address of the receiver.
-        bytes receiver; 
+        bytes receiver;
         // Encoded payload of the message to be delivered.
         bytes data;
     }
@@ -33,7 +33,7 @@ library Client {
                         abi.encode(
                             original.sender,
                             original.receiver,
-                            original.blockNumber,
+                            original.blockNumber
                         )
                     ),
                     keccak256(original.data)

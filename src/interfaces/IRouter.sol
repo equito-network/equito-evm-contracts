@@ -6,6 +6,7 @@ import {Client} from "../libraries/Client.sol";
 
 interface IRouter {
     error InvalidAddress(bytes encodedAddress);
+    error MessageSentAlready(bytes32 messageHash);
 
     event MessageSendRequested(
         address indexed sender,
@@ -14,7 +15,7 @@ interface IRouter {
     event MessageSendDelivered(Client.EquitoMessage[] messages);
 
     function sendMessage(
-        address receiver,
+        bytes calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
     ) external returns (bytes32);
