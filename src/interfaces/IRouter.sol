@@ -20,5 +20,7 @@ interface IRouter {
         bytes calldata data
     ) external returns (bytes32);
 
-    function routeMessages(EquitoMessage.EquitoMessage[] calldata messages) external;
+    function routeMessages(
+        EquitoMessage.EquitoMessage[] calldata messages
+    ) external;
 }
