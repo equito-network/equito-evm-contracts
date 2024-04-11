@@ -33,7 +33,9 @@ library Client {
                         abi.encode(
                             original.sender,
                             original.receiver,
-                            original.blockNumber
+                            original.blockNumber,
+                            original.sourceChainSelector,
+                            original.destinationChainSelector
                         )
                     ),
                     keccak256(original.data)
