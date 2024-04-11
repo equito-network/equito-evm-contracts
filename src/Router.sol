@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
-import {Client} from "./libraries/Client.sol";
+import {EquitoMessage} from "./libraries/EquitoMessage.sol";
 
 contract Router is IRouter {
     /// The chain selector for the chain where the Router contract is deployed.
@@ -22,7 +22,7 @@ contract Router is IRouter {
         uint256 destinationChainSelector,
         bytes calldata data
     ) external returns (bytes32) {
-        Client.EquitoMessage memory newMessage = Client.EquitoMessage({
+        EquitoMessage.EquitoMessage memory newMessage = EquitoMessage.EquitoMessage({
             blockNumber: block.number,
             sourceChainSelector: chainSelector,
             sender: abi.encode(msg.sender),
@@ -33,13 +33,13 @@ contract Router is IRouter {
 
         emit MessageSendRequested(msg.sender, newMessage);
 
-        return Client._hash(newMessage);
+        return EquitoMessage._hash(newMessage);
     }
 
     /// Route messages to the appropriate receiver contracts.
-    function routeMessages(Client.EquitoMessage[] calldata messages) external {
+    function routeMessages(EquitoMessage.EquitoMessage[] calldata messages) external {
         for (uint256 i = 0; i < messages.length; i++) {
-            bytes32 messageHash = Client._hash(messages[i]);
+            bytes32 messageHash = EquitoMessage._hash(messages[i]);
 
             if (isMessageSent[messageHash]) continue;
 

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.23;
 
-library Client {
+library EquitoMessage {
     /// The ubiquitous message structure for cross-chain communication,
     /// used by the Router contract to deliver and receive messages.
     /// It's designed to be used by any chain supported by the Equito protocol.

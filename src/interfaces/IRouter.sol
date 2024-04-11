@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.23;
 
-import {Client} from "../libraries/Client.sol";
+import {EquitoMessage} from "../libraries/EquitoMessage.sol";
 
 interface IRouter {
     error InvalidAddress(bytes encodedAddress);
@@ -10,9 +10,9 @@ interface IRouter {
 
     event MessageSendRequested(
         address indexed sender,
-        Client.EquitoMessage data
+        EquitoMessage.EquitoMessage data
     );
-    event MessageSendDelivered(Client.EquitoMessage[] messages);
+    event MessageSendDelivered(EquitoMessage.EquitoMessage[] messages);
 
     function sendMessage(
         bytes calldata receiver,
@@ -20,5 +20,5 @@ interface IRouter {
         bytes calldata data
     ) external returns (bytes32);
 
-    function routeMessages(Client.EquitoMessage[] calldata messages) external;
+    function routeMessages(EquitoMessage.EquitoMessage[] calldata messages) external;
 }
