@@ -7,37 +7,37 @@ import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {Client} from "./libraries/Client.sol";
 
 contract Router is IRouter {
-    IEquitoReceiver public equitoReceiver;
+    /// The chain selector for the chain where the Router contract is deployed.
     uint256 public chainSelector;
-    mapping(address => uint256) private _nonce;
 
     constructor(uint256 _chainSelector) {
         chainSelector = _chainSelector;
     }
 
+    /// Send a cross-chain message using Equito.
     function sendMessage(
-        address receiver,
+        bytes receiver,
         uint256 destinationChainSelector,
         bytes calldata data
     ) external returns (bytes32) {
         Client.EquitoMessage memory newMessage = Client.EquitoMessage({
+            blockNumber: block.number,
             sourceChainSelector: chainSelector,
             sender: abi.encode(msg.sender),
-            receiver: receiver,
             destinationChainSelector: destinationChainSelector,
-            nonce: _nonce[msg.sender],
+            receiver: receiver,
             data: data
         });
 
-        _nonce[msg.sender] += 1;
 
-        emit MessageSendRequested(msg.sender, newMessage);
+        emit MessageSendRequested(newMessage);
         return Client._hash(newMessage);
     }
 
+    /// Route messages to the appropriate receiver contracts.
     function routeMessages(Client.EquitoMessage[] calldata messages) external {
         for (uint256 i = 0; i < messages.length; i++) {
-            IEquitoReceiver(messages[i].receiver).receiveMessages(messages);
+            IEquitoReceiver(abi.decode(messages[i].receiver)).receiveMessages(messages);
         }
 
         emit MessageSendDelivered(messages);

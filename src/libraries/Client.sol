@@ -3,13 +3,22 @@
 pragma solidity ^0.8.23;
 
 library Client {
+    /// The ubiquitous message structure for cross-chain communication,
+    /// used by the Router contract to deliver and receive messages.
+    /// It's designed to be used by any chain supported by the Equito protocol.
     struct EquitoMessage {
-        uint256 nonce; // Nonce of the message.
-        uint256 sourceChainSelector; // Source chain selector.
-        bytes sender; // abi.decode(sender) if coming from an EVM chain.
-        uint256 destinationChainSelector; // Destination chain selector.
-        address receiver; // Receiver address
-        bytes data; // payload sent in original message.
+        /// Block number at which the message is emitted.
+        uint256 blockNumber; 
+        // Selector for the source chain, acting as an id.
+        uint256 sourceChainSelector;
+        // Address of the sender.
+        bytes sender; 
+        // Selector for the destination chain, acting as an id.
+        uint256 destinationChainSelector;
+        // Address of the receiver.
+        bytes receiver; 
+        // Encoded payload of the message to be delivered.
+        bytes data;
     }
 
     function _hash(
@@ -24,7 +33,7 @@ library Client {
                         abi.encode(
                             original.sender,
                             original.receiver,
-                            original.nonce
+                            original.blockNumber,
                         )
                     ),
                     keccak256(original.data)
