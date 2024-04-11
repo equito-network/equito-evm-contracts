@@ -31,20 +31,21 @@ contract Router is IRouter {
             data: data
         });
 
-        bytes32 messageHash = Client._hash(newMessage);
-
-        if (isMessageSent[messageHash]) revert MessageSentAlready(messageHash);
-
         emit MessageSendRequested(msg.sender, newMessage);
-        isMessageSent[messageHash] = true;
+
         return Client._hash(newMessage);
     }
 
     /// Route messages to the appropriate receiver contracts.
     function routeMessages(Client.EquitoMessage[] calldata messages) external {
         for (uint256 i = 0; i < messages.length; i++) {
+            bytes32 messageHash = Client._hash(messages[i]);
+
+            if (isMessageSent[messageHash]) continue;
+
             address receiver = abi.decode(messages[i].receiver, (address));
             IEquitoReceiver(receiver).receiveMessages(messages);
+            isMessageSent[messageHash] = true;
         }
 
         emit MessageSendDelivered(messages);
