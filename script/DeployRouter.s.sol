@@ -7,6 +7,7 @@ import "forge-std/Script.sol";
 
 import {Router} from "../src/Router.sol";
 
+/// This script is used to deploy the Router contract by add config from env files.
 contract DeployRouter is Script {
     using stdJson for string;
 
@@ -20,7 +21,6 @@ contract DeployRouter is Script {
     function run() public {
         string memory root = vm.projectRoot();
         string memory basePath = string.concat(root, "/script/deployment/");
-        string memory path = string.concat(basePath, "Router-");
         // start broadcasting transactions
         vm.startBroadcast(deployerAddress);
 
@@ -34,7 +34,7 @@ contract DeployRouter is Script {
         vm.stopBroadcast();
 
         // Write to file
-        path = string.concat(path, outputFilename);
+        string memory path = string.concat(basePath, outputFilename);
         vm.writeJson(
             vm.serializeAddress("contracts", "router", address(router)),
             path
