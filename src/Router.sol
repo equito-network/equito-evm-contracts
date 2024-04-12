@@ -6,6 +6,10 @@ import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {EquitoMessage} from "./libraries/EquitoMessage.sol";
 
+/// The Router contract is used in the Equito Protocol to exchange messages with different blockchains.
+/// Equito Validators will listen to the events emitted by this contract's `sendMessage` function,
+/// to collect and relay messages to the appropriate destination chains.
+/// Equito Validators will also deliver messages to this contract, to be routed to the appropriate receivers.
 contract Router is IRouter {
     /// The chain selector for the chain where the Router contract is deployed.
     uint256 public chainSelector;
@@ -44,7 +48,7 @@ contract Router is IRouter {
             if (isMessageSent[messageHash]) continue;
 
             address receiver = abi.decode(messages[i].receiver, (address));
-            IEquitoReceiver(receiver).receiveMessages(messages);
+            IEquitoReceiver(receiver).receiveMessage(messages[i]);
             isMessageSent[messageHash] = true;
         }
 
