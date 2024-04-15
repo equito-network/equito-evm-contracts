@@ -47,7 +47,7 @@ Start a local instance of Polygon in a separate terminal:
 ./test/anvil/start-polygon-local.sh
 ```
 
-Last step, start deploying router on each chain.
+Last step, deploying a Router Contract on each chain.
 
 ```shell
 ./test/anvil/deploy-router.sh
