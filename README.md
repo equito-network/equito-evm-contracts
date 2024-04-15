@@ -29,7 +29,7 @@ $ forge test
 
 ## Running a Local Testnet
 
-Start sepolia local chain in a separate terminal:
+Start a local instance of Sepolia in a separate terminal:
 
 ```shell
 ./test/anvil/start-sepolia-local.sh
