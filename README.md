@@ -27,7 +27,7 @@ $ forge build
 $ forge test
 ```
 
-## Running on local
+## Running a Local Testnet
 
 Start sepolia local chain in a separate terminal:
 
