@@ -35,7 +35,7 @@ Start a local instance of Sepolia in a separate terminal:
 ./test/anvil/start-sepolia-local.sh
 ```
 
-Start bnb local chain in a separate terminal:
+Start a local instance of BNB in a separate terminal:
 
 ```shell
 ./test/anvil/start-bnb-local.sh
