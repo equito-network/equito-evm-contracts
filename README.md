@@ -41,7 +41,7 @@ Start a local instance of BNB in a separate terminal:
 ./test/anvil/start-bnb-local.sh
 ```
 
-Start polygon local chain in a separate terminal:
+Start a local instance of Polygon in a separate terminal:
 
 ```shell
 ./test/anvil/start-polygon-local.sh
