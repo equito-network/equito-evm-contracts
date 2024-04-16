@@ -7,7 +7,7 @@ import "forge-std/Script.sol";
 
 import {Router} from "../src/Router.sol";
 
-/// This script is used to deploy the Router contract by add config from env files.
+/// This script is used to deploy the Router contract using the configuration determined by the env file.
 contract DeployRouter is Script {
     using stdJson for string;
 
