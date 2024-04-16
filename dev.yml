@@ -1,0 +1,17 @@
+private-key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+evm:
+  - chain: Sepolia
+    id: 11155111
+    endpoint: localhost:8545
+    router: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+    block: 1
+  - chain: BNB Testnet
+    id: 97
+    endpoint: localhost:8546
+    router: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+    block: 1
+  - chain: Polygon Testnet
+    id: 80001
+    endpoint: localhost:8547
+    router: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+    block: 1
