@@ -6,11 +6,17 @@ import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {EquitoMessage} from "./libraries/EquitoMessage.sol";
 
+/// The Router contract is used in the Equito Protocol to exchange messages with different blockchains.
+/// Equito Validators will listen to the events emitted by this contract's `sendMessage` function,
+/// to collect and relay messages to the appropriate destination chains.
+/// Equito Validators will also deliver messages to this contract, to be routed to the appropriate receivers.
 contract Router is IRouter {
     /// The chain selector for the chain where the Router contract is deployed.
     uint256 public chainSelector;
 
-    mapping(bytes32 => bool) public isMessageSent;
+    /// Stores the messages that have already been processed by this Router.
+    /// Used to prevent replay attacks, avoiding duplicate messages to be processed twice, hence the name.
+    mapping(bytes32 => bool) public isDuplicateMessage;
 
     constructor(uint256 _chainSelector) {
         chainSelector = _chainSelector;
@@ -41,11 +47,11 @@ contract Router is IRouter {
         for (uint256 i = 0; i < messages.length; i++) {
             bytes32 messageHash = EquitoMessage._hash(messages[i]);
 
-            if (isMessageSent[messageHash]) continue;
+            if (isDuplicateMessage[messageHash]) continue;
 
             address receiver = abi.decode(messages[i].receiver, (address));
-            IEquitoReceiver(receiver).receiveMessages(messages);
-            isMessageSent[messageHash] = true;
+            IEquitoReceiver(receiver).receiveMessage(messages[i]);
+            isDuplicateMessage[messageHash] = true;
         }
 
         emit MessageSendDelivered(messages);
