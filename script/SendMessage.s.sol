@@ -16,8 +16,8 @@ contract SendMessage is Script {
 
     Router public router;
 
-    bytes public receiver = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
-    uint256 public destinationChainSelector = 1;
+    bytes public receiver = "";
+    uint256 public destinationChainSelector = 0;
     bytes public data = abi.encodePacked("Hello, World!");
 
     function run() public {
@@ -26,13 +26,13 @@ contract SendMessage is Script {
         // start broadcasting transactions
         vm.startBroadcast(deployerAddress);
 
-        console.log("======== Send message =========");
+        console.log("======== Sending message =========");
 
         // Construct parameters
 
         router.sendMessage(receiver, destinationChainSelector, data);
 
-        console.log("======== Finished send message =========");
+        console.log("======== Message sent =========");
 
         // finish broadcasting transactions
         vm.stopBroadcast();
