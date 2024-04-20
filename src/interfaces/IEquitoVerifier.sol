@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {EquitoMessage} from "../libraries/EquitoMessage.sol";
+import {EquitoMessageLibrary} from "../libraries/EquitoMessageLibrary.sol";
 
 interface IEquitoVerifier {
     function verifyMessages(
-        EquitoMessage.EquitoMessage[] calldata messages,
+        EquitoMessageLibrary.EquitoMessage[] calldata messages,
         bytes calldata proof
     ) external;
 }

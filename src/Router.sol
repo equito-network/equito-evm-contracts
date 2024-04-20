@@ -4,13 +4,15 @@ pragma solidity ^0.8.23;
 
 import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
-import {EquitoMessage} from "./libraries/EquitoMessage.sol";
+import {EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 
 /// The Router contract is used in the Equito Protocol to exchange messages with different blockchains.
 /// Equito Validators will listen to the events emitted by this contract's `sendMessage` function,
 /// to collect and relay messages to the appropriate destination chains.
 /// Equito Validators will also deliver messages to this contract, to be routed to the appropriate receivers.
-contract Router is IRouter {
+contract Router is IRouter, Ownable {
     /// The chain selector for the chain where the Router contract is deployed.
     uint256 public chainSelector;
 
@@ -18,8 +20,16 @@ contract Router is IRouter {
     /// Used to prevent replay attacks, avoiding duplicate messages to be processed twice, hence the name.
     mapping(bytes32 => bool) public isDuplicateMessage;
 
-    constructor(uint256 _chainSelector) {
+    /// Stores the contract of verified messages.
+    IEquitoVerifier[] public verifiers;
+
+    constructor(
+        uint256 _chainSelector,
+        address _initialVerifier,
+        address _owner
+    ) Ownable(_owner) {
         chainSelector = _chainSelector;
+        verifiers.push(IEquitoVerifier(_initialVerifier));
     }
 
     /// Send a cross-chain message using Equito.
@@ -28,24 +38,31 @@ contract Router is IRouter {
         uint256 destinationChainSelector,
         bytes calldata data
     ) external returns (bytes32) {
-        EquitoMessage.EquitoMessage memory newMessage = EquitoMessage.EquitoMessage({
-            blockNumber: block.number,
-            sourceChainSelector: chainSelector,
-            sender: abi.encode(msg.sender),
-            destinationChainSelector: destinationChainSelector,
-            receiver: receiver,
-            data: data
-        });
+        EquitoMessageLibrary.EquitoMessage
+            memory newMessage = EquitoMessageLibrary.EquitoMessage({
+                blockNumber: block.number,
+                sourceChainSelector: chainSelector,
+                sender: abi.encode(msg.sender),
+                destinationChainSelector: destinationChainSelector,
+                receiver: receiver,
+                data: data
+            });
 
         emit MessageSendRequested(msg.sender, newMessage);
 
-        return EquitoMessage._hash(newMessage);
+        return EquitoMessageLibrary._hash(newMessage);
     }
 
     /// Route messages to the appropriate receiver contracts.
-    function routeMessages(EquitoMessage.EquitoMessage[] calldata messages) external {
+    function routeMessages(
+        EquitoMessageLibrary.EquitoMessage[] calldata messages,
+        uint256 verfierIndex
+    ) external {
+        if (verfierIndex < verifiers.length)
+            revert InvalidVerifierIndex(verfierIndex);
+
         for (uint256 i = 0; i < messages.length; i++) {
-            bytes32 messageHash = EquitoMessage._hash(messages[i]);
+            bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
 
             if (isDuplicateMessage[messageHash]) continue;
 

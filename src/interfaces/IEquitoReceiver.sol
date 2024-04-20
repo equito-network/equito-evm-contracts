@@ -2,8 +2,10 @@
 
 pragma solidity ^0.8.23;
 
-import {EquitoMessage} from "../libraries/EquitoMessage.sol";
+import {EquitoMessageLibrary} from "../libraries/EquitoMessageLibrary.sol";
 
 interface IEquitoReceiver {
-    function receiveMessage(EquitoMessage.EquitoMessage calldata message) external;
+    function receiveMessage(
+        EquitoMessageLibrary.EquitoMessage calldata message
+    ) external;
 }
