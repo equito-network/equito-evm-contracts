@@ -73,4 +73,9 @@ contract Router is IRouter, Ownable {
 
         emit MessageSendDelivered(messages);
     }
+
+    /// Add a new verifier contract to the Router.
+    function addVerifier(address verifier) external onlyOwner {
+        verifiers.push(IEquitoVerifier(verifier));
+    }
 }
