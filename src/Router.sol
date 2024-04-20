@@ -20,7 +20,7 @@ contract Router is IRouter, Ownable {
     /// Used to prevent replay attacks, avoiding duplicate messages to be processed twice, hence the name.
     mapping(bytes32 => bool) public isDuplicateMessage;
 
-    /// Stores the contract of verified messages.
+    /// Stores the valid Verifier Contracts.
     IEquitoVerifier[] public verifiers;
 
     constructor(
@@ -74,7 +74,7 @@ contract Router is IRouter, Ownable {
         emit MessageSendDelivered(messages);
     }
 
-    /// Add a new verifier contract to the Router.
+    /// Add a new Verifier Contract to the Router.
     function addVerifier(address verifier) external onlyOwner {
         verifiers.push(IEquitoVerifier(verifier));
     }
