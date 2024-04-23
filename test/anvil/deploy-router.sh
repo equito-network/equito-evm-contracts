@@ -27,6 +27,7 @@ POLYGON_ROUTER=$( forge create src/Router.sol:Router \
 
 echo "Generating dev.yml..."
 
+<<<<<<< HEAD
 cd "$(dirname "$0")" && cd ../../
 
 echo "private-key: $PRIVATE_KEY" > out/dev.yml
@@ -52,6 +53,31 @@ if [[ $POLYGON_ROUTER ]]; then
     echo "    endpoint: ${POLYGON_RPC_URL}" >> out/dev.yml
     echo "    router: ${POLYGON_ROUTER}" >> out/dev.yml
     echo "    block: 1" >> out/dev.yml
+=======
+echo "private-key: $PRIVATE_KEY" > dev.yml
+echo "evm:" >> dev.yml
+
+if [[ $SEPOLIA_ROUTER ]]; then
+    echo "  - chain: Sepolia" >> dev.yml
+    echo "    id: 11155111" >> dev.yml
+    echo "    endpoint: ${SEPOLIA_RPC_URL}" >> dev.yml
+    echo "    router: ${SEPOLIA_ROUTER}" >> dev.yml
+    echo "    block: 1" >> dev.yml
+fi
+if [[ $BNB_ROUTER ]]; then
+    echo "  - chain: BNB Testnet" >> dev.yml
+    echo "    id: 97" >> dev.yml
+    echo "    endpoint: ${BNB_RPC_URL}" >> dev.yml
+    echo "    router: ${BNB_ROUTER}" >> dev.yml
+    echo "    block: 1" >> dev.yml
+fi
+if [[ $POLYGON_ROUTER ]]; then
+    echo "  - chain: Polygon Testnet" >> dev.yml
+    echo "    id: 80001" >> dev.yml
+    echo "    endpoint: ${POLYGON_RPC_URL}" >> dev.yml
+    echo "    router: ${POLYGON_ROUTER}" >> dev.yml
+    echo "    block: 1" >> dev.yml
+>>>>>>> f607320 (Local Testnet Deploy Scripts (#6))
 fi
 
 echo "Deployment completed."
