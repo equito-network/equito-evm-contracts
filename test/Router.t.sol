@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {Test, console} from "forge-std/Test.sol";
 import {Router, IRouter} from "../src/Router.sol";
-import {EquitoMessage} from "../src/libraries/EquitoMessage.sol";
+import {EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockReceiver} from "./mock/MockReceiver.sol";
 
 contract RouterTest is Test {
@@ -23,37 +23,35 @@ contract RouterTest is Test {
         vm.prank(alice);
         bytes memory data = abi.encode("Hello, World!");
 
-        EquitoMessage.EquitoMessage memory message = EquitoMessage
-            .EquitoMessage({
-                blockNumber: 1,
-                sourceChainSelector: 1,
-                sender: abi.encode(alice),
-                destinationChainSelector: 2,
-                receiver: abi.encode(receiver),
-                data: data
-            });
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(alice),
+            destinationChainSelector: 2,
+            receiver: abi.encode(receiver),
+            data: data
+        });
 
         bytes32 newMessage = router.sendMessage(abi.encode(receiver), 2, data);
 
-        assertEq(EquitoMessage._hash(message), newMessage);
+        assertEq(EquitoMessageLibrary._hash(message), newMessage);
     }
 
     function testRouteMessages() public {
         vm.prank(alice);
         bytes memory data = abi.encode("Hello, World!");
 
-        EquitoMessage.EquitoMessage memory message = EquitoMessage
-            .EquitoMessage({
-                blockNumber: 1,
-                sourceChainSelector: 1,
-                sender: abi.encode(alice),
-                destinationChainSelector: 2,
-                receiver: abi.encode(receiver),
-                data: data
-            });
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(alice),
+            destinationChainSelector: 2,
+            receiver: abi.encode(receiver),
+            data: data
+        });
 
-        EquitoMessage.EquitoMessage[]
-            memory messages = new EquitoMessage.EquitoMessage[](1);
+        EquitoMessage[]
+            memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
         router.routeMessages(messages);
@@ -63,18 +61,17 @@ contract RouterTest is Test {
         vm.prank(alice);
         bytes memory data = abi.encode("Hello, World!");
 
-        EquitoMessage.EquitoMessage memory message = EquitoMessage
-            .EquitoMessage({
-                blockNumber: 1,
-                sourceChainSelector: 1,
-                sender: abi.encode(alice),
-                destinationChainSelector: 2,
-                receiver: abi.encode(receiver),
-                data: data
-            });
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(alice),
+            destinationChainSelector: 2,
+            receiver: abi.encode(receiver),
+            data: data
+        });
 
-        EquitoMessage.EquitoMessage[]
-            memory messages = new EquitoMessage.EquitoMessage[](2);
+        EquitoMessage[]
+            memory messages = new EquitoMessage[](2);
         messages[0] = message;
         messages[1] = message;
 
