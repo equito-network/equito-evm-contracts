@@ -22,6 +22,7 @@ contract Router is IRouter {
     /// Used to prevent replay attacks, avoiding duplicate messages to be processed twice, hence the name.
     mapping(bytes32 => bool) public isDuplicateMessage;
 
+    error InvalidMessagesProof();
     error InvalidNewVerifierProof(address verifier);
 
     event VerifierAdded(address verifier);
@@ -55,7 +56,16 @@ contract Router is IRouter {
     }
 
     /// Route messages to the appropriate receiver contracts.
-    function routeMessages(EquitoMessage[] calldata messages) external {
+    function routeMessages(
+        EquitoMessage[] calldata messages,
+        uint256 verifierIndex,
+        bytes calldata proof
+    ) external {
+        require(
+            IEquitoVerifier(verifiers[verifierIndex]).verifyMessages(messages, proof),
+            InvalidMessagesProof()
+        );
+
         for (uint256 i = 0; i < messages.length; i++) {
             bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
 

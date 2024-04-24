@@ -5,9 +5,6 @@ pragma solidity ^0.8.23;
 import {EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
 
 interface IRouter {
-    error InvalidAddress(bytes encodedAddress);
-    error MessageSentAlready(bytes32 messageHash);
-
     event MessageSendRequested(
         address indexed sender,
         EquitoMessage data
@@ -21,6 +18,8 @@ interface IRouter {
     ) external returns (bytes32);
 
     function routeMessages(
-        EquitoMessage[] calldata messages
+        EquitoMessage[] calldata messages,
+        uint256 verifierIndex,
+        bytes calldata proof
     ) external;
 }
