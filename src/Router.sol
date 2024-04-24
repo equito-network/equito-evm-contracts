@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 
 import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
+import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
 
 /// The Router contract is used in the Equito Protocol to exchange messages with different blockchains.
@@ -14,12 +15,23 @@ contract Router is IRouter {
     /// The chain selector for the chain where the Router contract is deployed.
     uint256 public chainSelector;
 
+    /// The list of Verifiers that will be used to verify the messages.
+    IEquitoVerifier[] public verifiers;
+
     /// Stores the messages that have already been processed by this Router.
     /// Used to prevent replay attacks, avoiding duplicate messages to be processed twice, hence the name.
     mapping(bytes32 => bool) public isDuplicateMessage;
 
-    constructor(uint256 _chainSelector) {
+    error InvalidNewVerifierProof(address verifier);
+
+    event VerifierAdded(address verifier);
+
+    constructor(
+        uint256 _chainSelector,
+        address _initialVerifier
+    ) {
         chainSelector = _chainSelector;
+        verifiers.push(IEquitoVerifier(_initialVerifier));
     }
 
     /// Send a cross-chain message using Equito.
@@ -55,5 +67,25 @@ contract Router is IRouter {
         }
 
         emit MessageSendDelivered(messages);
+    }
+
+    /// Add a new Verifier to the Router contract.
+    /// It requires a proof to be provided, to ensure that the Verifier is authorized to be added, 
+    /// verified by one of the existing Verifiers, determined by `verifierIndex`.
+    function addVerifier(
+        address _newVerifier,
+        uint256 verifierIndex,
+        bytes calldata proof
+    ) external {
+        if (IEquitoVerifier(verifiers[verifierIndex]).verifySignatures(
+            keccak256(abi.encode(_newVerifier)),
+            proof
+        )) {
+            verifiers.push(IEquitoVerifier(_newVerifier));
+
+            emit VerifierAdded(_newVerifier);
+        } else {
+            revert InvalidNewVerifierProof(_newVerifier);
+        }
     }
 }

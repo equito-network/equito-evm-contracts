@@ -9,4 +9,9 @@ interface IEquitoVerifier {
         EquitoMessage[] calldata messages,
         bytes calldata proof
     ) external returns (bool); 
+
+    function verifySignatures(
+        bytes32 hash,
+        bytes calldata proof
+    ) external returns (bool);
 }

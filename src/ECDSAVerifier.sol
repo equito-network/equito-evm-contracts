@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
-import {EquitoMessage} from "./libraries/EquitoMessageLibrary.sol";
+import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
 
 /// The ECDSAVerifier contract is used in the Equito Protocol to verify that a set of EquitoMessage
 /// has been signed by a sufficient number of Validators, determined by the threshold.
@@ -18,7 +18,8 @@ contract ECDSAVerifier is IEquitoVerifier {
         validators = _validators;
     }
 
-    /// Verify that a set of EquitoMessage has been signed by a sufficient number of Validators, determined by the threshold.
+    /// Verify that a set of EquitoMessage has been signed by a sufficient number of Validators,
+    /// determined by the threshold.
     function verifyMessages(
         EquitoMessage[] calldata messages,
         bytes calldata proof
@@ -32,7 +33,7 @@ contract ECDSAVerifier is IEquitoVerifier {
             hashed = keccak256(abi.encode(messages));
         }
 
-        return _verifySignatures(hashed, proof);
+        return this.verifySignatures(hashed, proof);
     }
 
     /// Update the list of Validators.
@@ -42,19 +43,19 @@ contract ECDSAVerifier is IEquitoVerifier {
         bytes calldata proof
     ) external {
         bytes32 hashed = keccak256(abi.encode(_validators));
-        if (_verifySignatures(hashed, proof)) {
+        if (this.verifySignatures(hashed, proof)) {
             validators = _validators;
             // Emit event
             emit ValidatorSetUpdated();
         } 
     }
 
-    /// Internal function to verify that a certain hashed message has been signed by a sufficient number of Validators,
+    /// Verify that a certain hashed message has been signed by a sufficient number of Validators,
     /// determined by the threshold, without any assumption on the content of the message itself.
-    function _verifySignatures(
+    function verifySignatures(
         bytes32 hash,
         bytes calldata proof
-    ) internal returns (bool) {
+    ) external override returns (bool) {
         // Decode proof as a list of bytes arrays
         // we know that a well-formed signature has length 65,
         // therefore we can use this to split the proof into signatures 
