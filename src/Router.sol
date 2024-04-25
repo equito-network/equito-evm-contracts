@@ -27,10 +27,7 @@ contract Router is IRouter {
 
     event VerifierAdded(address verifier);
 
-    constructor(
-        uint256 _chainSelector,
-        address _initialVerifier
-    ) {
+    constructor(uint256 _chainSelector, address _initialVerifier) {
         chainSelector = _chainSelector;
         verifiers.push(IEquitoVerifier(_initialVerifier));
     }
@@ -61,10 +58,14 @@ contract Router is IRouter {
         uint256 verifierIndex,
         bytes calldata proof
     ) external {
-        require(
-            IEquitoVerifier(verifiers[verifierIndex]).verifyMessages(messages, proof),
-            InvalidMessagesProof()
-        );
+        if (
+            !IEquitoVerifier(verifiers[verifierIndex]).verifyMessages(
+                messages,
+                proof
+            )
+        ) {
+            revert InvalidMessagesProof();
+        }
 
         for (uint256 i = 0; i < messages.length; i++) {
             bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
@@ -80,17 +81,19 @@ contract Router is IRouter {
     }
 
     /// Add a new Verifier to the Router contract.
-    /// It requires a proof to be provided, to ensure that the Verifier is authorized to be added, 
+    /// It requires a proof to be provided, to ensure that the Verifier is authorized to be added,
     /// verified by one of the existing Verifiers, determined by `verifierIndex`.
     function addVerifier(
         address _newVerifier,
         uint256 verifierIndex,
         bytes calldata proof
     ) external {
-        if (IEquitoVerifier(verifiers[verifierIndex]).verifySignatures(
-            keccak256(abi.encode(_newVerifier)),
-            proof
-        )) {
+        if (
+            IEquitoVerifier(verifiers[verifierIndex]).verifySignatures(
+                keccak256(abi.encode(_newVerifier)),
+                proof
+            )
+        ) {
             verifiers.push(IEquitoVerifier(_newVerifier));
 
             emit VerifierAdded(_newVerifier);
