@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
-import {EquitoMessage} from "./libraries/EquitoMessage.sol";
+import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
 
 /// The Router contract is used in the Equito Protocol to exchange messages with different blockchains.
 /// Equito Validators will listen to the events emitted by this contract's `sendMessage` function,
@@ -28,7 +28,7 @@ contract Router is IRouter {
         uint256 destinationChainSelector,
         bytes calldata data
     ) external returns (bytes32) {
-        EquitoMessage.EquitoMessage memory newMessage = EquitoMessage.EquitoMessage({
+        EquitoMessage memory newMessage = EquitoMessage({
             blockNumber: block.number,
             sourceChainSelector: chainSelector,
             sender: abi.encode(msg.sender),
@@ -39,13 +39,13 @@ contract Router is IRouter {
 
         emit MessageSendRequested(msg.sender, newMessage);
 
-        return EquitoMessage._hash(newMessage);
+        return EquitoMessageLibrary._hash(newMessage);
     }
 
     /// Route messages to the appropriate receiver contracts.
-    function routeMessages(EquitoMessage.EquitoMessage[] calldata messages) external {
+    function routeMessages(EquitoMessage[] calldata messages) external {
         for (uint256 i = 0; i < messages.length; i++) {
-            bytes32 messageHash = EquitoMessage._hash(messages[i]);
+            bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
 
             if (isDuplicateMessage[messageHash]) continue;
 
