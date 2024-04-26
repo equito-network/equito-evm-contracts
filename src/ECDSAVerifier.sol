@@ -23,7 +23,7 @@ contract ECDSAVerifier is IEquitoVerifier {
     function verifyMessages(
         EquitoMessage[] calldata messages,
         bytes calldata proof
-    ) external override returns (bool) {
+    ) external view override returns (bool) {
         if (messages.length == 0) return false;
 
         bytes32 hashed;
@@ -54,8 +54,8 @@ contract ECDSAVerifier is IEquitoVerifier {
     /// determined by the threshold, without any assumption on the content of the message itself.
     function verifySignatures(
         bytes32 hash,
-        bytes calldata proof
-    ) external override returns (bool) {
+        bytes memory proof
+    ) external view override returns (bool) {
         if (proof.length % 65 != 0) return false;
 
         uint256 validatorsLength = validators.length;
@@ -63,12 +63,15 @@ contract ECDSAVerifier is IEquitoVerifier {
 
         uint256 c = 0;
         uint256 i = 0;
+
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+        address signer;
+
         while (i < proof.length) {
             // The Signature Verification is inspired by OpenZeppelin's ECDSA Verification:
             // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/4032b42694ff6599b17ffde65b2b64d7fc8a38f8/contracts/utils/cryptography/ECDSA.sol#L128-L142
-            bytes32 r;
-            bytes32 s;
-            uint8 v;
 
             assembly {
                 r := mload(add(proof, add(i, 32)))
@@ -80,7 +83,7 @@ contract ECDSAVerifier is IEquitoVerifier {
                 uint256(s) <=
                 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
             ) {
-                address signer = ecrecover(hash, v, r, s);
+                signer = ecrecover(hash, v, r, s);
                 if (contains(validators, signer)) {
                     if (!contains(signatories, signer)) {
                         signatories[c] = signer;
