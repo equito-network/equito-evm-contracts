@@ -95,7 +95,7 @@ contract ECDSAVerifier is IEquitoVerifier {
             i += 65;
         }
 
-        return c > (validatorsLength * threshold) / 100;
+        return c >= (validatorsLength * threshold) / 100;
     }
 
     /// Helper function to check if an address is present in an array.
