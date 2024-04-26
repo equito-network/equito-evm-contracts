@@ -46,7 +46,6 @@ contract ECDSAVerifier is IEquitoVerifier {
         bytes32 hashed = keccak256(abi.encode(_validators));
         if (this.verifySignatures(hashed, proof)) {
             validators = _validators;
-            // Emit event
             emit ValidatorSetUpdated();
         }
     }
@@ -59,10 +58,10 @@ contract ECDSAVerifier is IEquitoVerifier {
     ) external override returns (bool) {
         if (proof.length % 65 != 0) return false;
 
-        // This doesn't work as mappings are only valid for storage.
-        // TODO: Find an alternative solution to avoid counting duplicates.
-        mapping(address => bool) signed;
+        uint256 validatorsLength = validators.length;
+        address[] memory signatories = new address[](validatorsLength);
 
+        uint256 c = 0;
         uint256 i = 0;
         while (i < proof.length) {
             // The Signature Verification is inspired by OpenZeppelin's ECDSA Verification:
@@ -82,14 +81,30 @@ contract ECDSAVerifier is IEquitoVerifier {
                 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
             ) {
                 address signer = ecrecover(hash, v, r, s);
-                if (validators.contains(signer)) {
-                    signed[signer] = true;
+                if (contains(validators, signer)) {
+                    if (!contains(signatories, signer)) {
+                        signatories[c] = signer;
+                        c += 1;
+                    }
                 }
             }
 
             i += 65;
         }
 
-        return signed.length > (validators.length * threshold) / 100;
+        return c > (validatorsLength * threshold) / 100;
+    }
+
+    /// Helper function to check if an address is present in an array.
+    function contains(
+        address[] memory array,
+        address value
+    ) internal pure returns (bool) {
+        for (uint256 i = 0; i < array.length; i++) {
+            if (array[i] == value) {
+                return true;
+            }
+        }
+        return false;
     }
 }
