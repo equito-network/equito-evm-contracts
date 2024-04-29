@@ -6,11 +6,22 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import {EquitoApp} from "./EquitoApp.sol";
 import {EquitoMessage} from "./libraries/EquitoMessageLibrary.sol";
-import {ICrossChainSwap} from "./interfaces/ICrossChainSwap.sol";
 import {IRouter} from "./interfaces/IRouter.sol";
 import {TransferHelper} from "./libraries/TransferHelper.sol";
 
-contract CrossChainSwap is ICrossChainSwap, EquitoApp, Ownable {
+contract CrossChainSwap is EquitoApp, Ownable {
+    error InvalidLength();
+    error InvalidReceiver();
+
+    event SwapRequested(
+        bytes32 indexed messageId,
+        uint256 indexed destinationChainSelector,
+        address receiver,
+        address token,
+        uint256 tokenAmount,
+        address depositor
+    );
+
     address internal constant NATIVE_TOKEN =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -159,7 +170,7 @@ contract CrossChainSwap is ICrossChainSwap, EquitoApp, Ownable {
         );
 
         // Emit an event with message details
-        emit MessageSent(
+        emit SwapRequested(
             messageId,
             destinationChainSelector,
             receiver,
