@@ -4,10 +4,10 @@ pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import {EquitoApp} from "./EquitoApp.sol";
-import {EquitoMessage} from "./libraries/EquitoMessageLibrary.sol";
-import {IRouter} from "./interfaces/IRouter.sol";
-import {TransferHelper} from "./libraries/TransferHelper.sol";
+import {EquitoApp} from "../EquitoApp.sol";
+import {EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
+import {IRouter} from "../interfaces/IRouter.sol";
+import {TransferHelper} from "../libraries/TransferHelper.sol";
 
 contract CrossChainSwap is EquitoApp, Ownable {
     error InvalidLength();
