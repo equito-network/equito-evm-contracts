@@ -7,7 +7,7 @@ import "forge-std/Script.sol";
 
 import {Router} from "../src/Router.sol";
 import {CrossChainSwap} from "../src/examples/CrossChainSwap.sol";
-import {MockERC20} from "../src/mocks/MockUSDC.sol";
+import {MockERC20} from "../src/examples/MockERC20.sol";
 
 /// This script is used to deploy the Router contract using the configuration determined by the env file.
 contract DeployCrossChainSwap is Script {
