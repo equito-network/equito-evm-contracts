@@ -19,7 +19,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
         address receiver,
         address token,
         uint256 tokenAmount,
-        address depositor
+        bytes tokenReceiver
     );
 
     address internal constant NATIVE_TOKEN =
@@ -33,7 +33,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
     struct TokenAmount {
         address token;
         uint256 amount;
-        address depositor;
+        bytes receiver;
     }
 
     function calculateDestinationTokenAmount(
@@ -75,21 +75,22 @@ contract CrossChainSwap is EquitoApp, Ownable {
         );
 
         releaseToken(
-            tokenAmount.depositor,
+            tokenAmount.receiver,
             tokenAmount.token,
             tokenAmount.amount
         );
     }
 
     function releaseToken(
-        address depositor,
+        bytes memory receiver,
         address token,
         uint256 amount
     ) private {
+        address tokenReceiver = abi.decode(receiver, (address));
         if (token == NATIVE_TOKEN) {
-            TransferHelper.safeTransferETH(depositor, amount);
+            TransferHelper.safeTransferETH(tokenReceiver, amount);
         } else {
-            TransferHelper.safeTransfer(token, depositor, amount);
+            TransferHelper.safeTransfer(token, tokenReceiver, amount);
         }
     }
 
@@ -99,7 +100,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
         address sourceToken,
         uint256 amount,
         address receiver,
-        address depositor
+        bytes memory tokenReceiver
     ) external {
         TransferHelper.safeTransferFrom(
             sourceToken,
@@ -119,7 +120,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
             receiver,
             destinationToken,
             newAmount,
-            depositor
+            tokenReceiver
         );
     }
 
@@ -127,7 +128,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
         uint256 destinationChainSelector,
         address destinationToken,
         address receiver,
-        address depositor
+        bytes memory tokenReceiver
     ) external payable {
         uint256 newAmount = calculateDestinationTokenAmount(
             destinationChainSelector,
@@ -140,7 +141,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
             receiver,
             destinationToken,
             newAmount,
-            depositor
+            tokenReceiver
         );
     }
 
@@ -149,7 +150,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
         address receiver,
         address token,
         uint256 amount,
-        address depositor
+        bytes memory tokenReceiver
     ) public returns (bytes32 messageId) {
         if (receiver == address(0)) revert InvalidReceiver();
 
@@ -159,7 +160,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
         TokenAmount memory tokenAmount = TokenAmount({
             token: token,
             amount: amount,
-            depositor: depositor
+            receiver: tokenReceiver
         });
 
         // Send the message through the router and store the returned message ID
@@ -176,7 +177,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
             receiver,
             token,
             amount,
-            depositor
+            tokenReceiver
         );
 
         // Return the message ID
