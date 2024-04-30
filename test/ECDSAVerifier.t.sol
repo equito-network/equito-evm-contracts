@@ -82,7 +82,7 @@ contract ECDSAVerifierTest is Test {
         assert(verifier.verifySignatures(messageHash, proof));
     }
 
-    function testVerifyEmptyMessagesFails() public {
+    function testVerifyEmptyMessagesFails() public view {
         EquitoMessage[] memory messages = new EquitoMessage[](0);
         bytes memory proof = "";
 
