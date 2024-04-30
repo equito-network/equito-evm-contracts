@@ -16,7 +16,6 @@ contract DeployCrossChainSwap is Script {
     uint256 public deployPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
     uint256 public chainSelector = vm.envUint("CHAIN_SELECTOR");
     address public deployerAddress = vm.rememberKey(deployPrivateKey);
-    string public outputFilename = vm.envString("OUTPUT_FILENAME");
 
     CrossChainSwap public swap;
     MockERC20 public usdc;
@@ -24,8 +23,6 @@ contract DeployCrossChainSwap is Script {
     address router = 0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac;
 
     function run() public {
-        string memory root = vm.projectRoot();
-        string memory basePath = string.concat(root, "/script/deployment/");
         // start broadcasting transactions
         vm.startBroadcast(deployerAddress);
 
@@ -38,21 +35,23 @@ contract DeployCrossChainSwap is Script {
         console.log("Deployed USDC successfully =>", address(usdc));
 
         console.log(
-            "======== Transfer to Cross Chain Swap for liquidity ========="
+            "======== Transfer USDC to Cross Chain Swap for liquidity ========="
         );
 
         usdc.transfer(address(swap), 1_000_000 * 1e6);
+
+        console.log(
+            "======== Transfer Native to Chain Swap for liquidity ========="
+        );
+
+        (bool success, ) = address(swap).call{value: 0.001 * 1 ether}("");
+        if (!success) {
+            console.log("Failed to transfer native to CrossChainSwap");
+        }
 
         console.log("======== Finished deploy process =========");
 
         // finish broadcasting transactions
         vm.stopBroadcast();
-
-        // Write to file
-        string memory path = string.concat(basePath, outputFilename);
-        vm.writeJson(
-            vm.serializeAddress("contracts", "router", address(router)),
-            path
-        );
     }
 }
