@@ -17,7 +17,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
         bytes32 indexed messageId,
         uint256 indexed destinationChainSelector,
         address receiver,
-        address token,
+        bytes token,
         uint256 tokenAmount,
         bytes tokenReceiver
     );
@@ -26,26 +26,22 @@ contract CrossChainSwap is EquitoApp, Ownable {
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     mapping(uint256 => address) public nativeAddress;
-    mapping(uint256 => uint256) public nativePrice;
+    mapping(uint256 => mapping(bytes => uint256)) public tokenPrice;
 
     constructor(address _router) EquitoApp(_router) Ownable(msg.sender) {}
 
     struct TokenAmount {
-        address token;
+        bytes token;
         uint256 amount;
         bytes receiver;
     }
 
     function calculateDestinationTokenAmount(
         uint256 destinationChainSelector,
-        address destinationToken,
+        bytes memory destinationToken,
         uint256 amount
     ) public view returns (uint256) {
-        if (destinationToken == NATIVE_TOKEN) {
-            return amount * nativePrice[destinationChainSelector];
-        } else {
-            return amount;
-        }
+        return amount * tokenPrice[destinationChainSelector][destinationToken];
     }
 
     function setNativeToken(
@@ -58,13 +54,17 @@ contract CrossChainSwap is EquitoApp, Ownable {
         }
     }
 
-    function setNativePrice(
+    function setTokenPrice(
         uint256[] memory chainSelector,
+        bytes[] memory destinationToken,
         uint256[] memory price
     ) external onlyOwner {
-        if (chainSelector.length != price.length) revert InvalidLength();
+        if (
+            chainSelector.length != price.length ||
+            price.length != destinationToken.length
+        ) revert InvalidLength();
         for (uint256 i = 0; i < chainSelector.length; i++) {
-            nativePrice[chainSelector[i]] = price[i];
+            tokenPrice[chainSelector[i]][destinationToken[i]] = price[i];
         }
     }
 
@@ -76,7 +76,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
 
         releaseToken(
             tokenAmount.receiver,
-            tokenAmount.token,
+            abi.decode(tokenAmount.token, (address)),
             tokenAmount.amount
         );
     }
@@ -94,9 +94,9 @@ contract CrossChainSwap is EquitoApp, Ownable {
         }
     }
 
-    function lockToken(
+    function swapToken(
         uint256 destinationChainSelector,
-        address destinationToken,
+        bytes memory destinationToken,
         address sourceToken,
         uint256 amount,
         address receiver,
@@ -124,15 +124,15 @@ contract CrossChainSwap is EquitoApp, Ownable {
         );
     }
 
-    function lockERC20(
+    function swapERC20(
         uint256 destinationChainSelector,
-        address destinationToken,
+        bytes memory destinationToken,
         address receiver,
         bytes memory tokenReceiver
     ) external payable {
         uint256 newAmount = calculateDestinationTokenAmount(
             destinationChainSelector,
-            NATIVE_TOKEN,
+            abi.encode(NATIVE_TOKEN),
             msg.value
         );
 
@@ -148,7 +148,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
     function transferTokens(
         uint256 destinationChainSelector,
         address receiver,
-        address token,
+        bytes memory token,
         uint256 amount,
         bytes memory tokenReceiver
     ) public returns (bytes32 messageId) {
