@@ -14,13 +14,12 @@ contract DeployCrossChainSwap is Script {
     using stdJson for string;
 
     uint256 public deployPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
-    uint256 public chainSelector = vm.envUint("CHAIN_SELECTOR");
     address public deployerAddress = vm.rememberKey(deployPrivateKey);
+    address public router = vm.envAddress("ROUTER");
+    uint256 public chainSelector = vm.envUint("CHAIN_SELECTOR");
 
     CrossChainSwap public swap;
     MockERC20 public usdc;
-
-    address router = 0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac;
 
     function run() public {
         // start broadcasting transactions
