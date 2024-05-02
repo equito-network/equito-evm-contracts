@@ -131,6 +131,7 @@ contract CrossChainSwapTest is Test {
         EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
         router.routeMessages(messages, 0, abi.encode(1));
+        assertEq(token0.balanceOf(bob), 1);
         vm.stopPrank();
     }
 }
