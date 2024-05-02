@@ -99,7 +99,6 @@ contract CrossChainSwap is EquitoApp, Ownable {
         } else {
             TransferHelper.safeTransfer(token, recipient, tokenAmount.amount);
         }
-
     }
 
     /// Swap a certain amount of ERC20 token from the source chain to any token on the destination chain.
