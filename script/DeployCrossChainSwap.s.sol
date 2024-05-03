@@ -2,17 +2,14 @@
 
 pragma solidity ^0.8.23;
 
-import "forge-std/StdJson.sol";
 import "forge-std/Script.sol";
 
 import {Router} from "../src/Router.sol";
 import {CrossChainSwap} from "../src/examples/CrossChainSwap.sol";
 import {MockERC20} from "../src/examples/MockERC20.sol";
 
-/// This script is used to deploy the Router contract using the configuration determined by the env file.
+/// This script is used to deploy the CrossChainSwap contract using the configuration determined by the env file.
 contract DeployCrossChainSwap is Script {
-    using stdJson for string;
-
     uint256 public deployPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
     address public deployerAddress = vm.rememberKey(deployPrivateKey);
     address public router = vm.envAddress("ROUTER");
@@ -26,28 +23,19 @@ contract DeployCrossChainSwap is Script {
         vm.startBroadcast(deployerAddress);
 
         console.log("======== Deploying CrossChainSwap =========");
-        swap = new CrossChainSwap(router);
+        swap = new CrossChainSwap{value: 1 ether}(router);
         console.log("Deployed CrossChainSwap successfully =>", address(swap));
 
         console.log("======== Deploying USDC =========");
-        usdc = new MockERC20("USDC", "USDC", 10_000_000 * 1e6);
+        usdc = new MockERC20("USDC", "USDC", 10_000_000 * 1e18);
         console.log("Deployed USDC successfully =>", address(usdc));
 
         console.log(
             "======== Transfer USDC to Cross Chain Swap for liquidity ========="
         );
 
-        usdc.transfer(address(swap), 1_000_000 * 1e6);
-
-        console.log(
-            "======== Transfer Native to Chain Swap for liquidity ========="
-        );
-
-        (bool success, ) = address(swap).call{value: 0.001 * 1 ether}("");
-        if (!success) {
-            console.log("Failed to transfer native to CrossChainSwap");
-        }
-
+        usdc.transfer(address(swap), 1_000_000 * 1e18);
+       
         console.log("======== Finished deploy process =========");
 
         // finish broadcasting transactions

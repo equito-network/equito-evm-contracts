@@ -34,7 +34,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
     /// The first mapping is the chain selector, and the second mapping is the token address.
     mapping(uint256 => mapping(bytes => uint256)) public tokenPrice;
 
-    constructor(address _router) EquitoApp(_router) Ownable(msg.sender) {}
+    constructor(address _router) payable EquitoApp(_router) Ownable(msg.sender) {}
 
     struct TokenAmount {
         bytes token;

@@ -5,23 +5,47 @@ BNB_RPC_URL=localhost:8546
 POLYGON_RPC_URL=localhost:8547
 
 PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+ACCOUNTS="[0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266]"
 
 echo "Starting deployment..."
 
+# Deploy Verifier on Sepolia
+SEPOLIA_VERIFIER=$( forge create src/ECDSAVerifier.sol:ECDSAVerifier \
+    --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --constructor-args $ACCOUNTS | \
+    grep "Deployed to:" | awk '/0x.*/ {print $3}' )
+
 # Deploy Router on Sepolia
 SEPOLIA_ROUTER=$( forge create src/Router.sol:Router \
-    --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --constructor-args 1 | \
+    --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --constructor-args 1 $SEPOLIA_VERIFIER | \
+    grep "Deployed to:" | awk '/0x.*/ {print $3}' )
+
+echo "Router contract deployed on Sepolia at $SEPOLIA_ROUTER"
+
+# Deploy Verifier on BNB Testnet
+BNB_VERIFIER=$( forge create src/ECDSAVerifier.sol:ECDSAVerifier \
+    --rpc-url $BNB_RPC_URL --private-key $PRIVATE_KEY --constructor-args $ACCOUNTS | \
     grep "Deployed to:" | awk '/0x.*/ {print $3}' )
 
 # Deploy Router on BNB Testnet
 BNB_ROUTER=$( forge create src/Router.sol:Router \
-    --rpc-url $BNB_RPC_URL --private-key $PRIVATE_KEY --constructor-args 2 | \
+    --rpc-url $BNB_RPC_URL --private-key $PRIVATE_KEY --constructor-args 2 $BNB_VERIFIER | \
+    grep "Deployed to:" | awk '/0x.*/ {print $3}' )
+
+echo "Router contract deployed on BNB Testnet at $BNB_ROUTER"
+
+
+# Deploy Verifier on BNB Testnet
+POLYGON_VERIFIER=$( forge create src/ECDSAVerifier.sol:ECDSAVerifier \
+    --rpc-url $POLYGON_RPC_URL --private-key $PRIVATE_KEY --constructor-args $ACCOUNTS | \
     grep "Deployed to:" | awk '/0x.*/ {print $3}' )
 
 # Deploy on Polygon Testnet
 POLYGON_ROUTER=$( forge create src/Router.sol:Router \
-    --rpc-url $POLYGON_RPC_URL --private-key $PRIVATE_KEY --constructor-args 3 | \
+    --rpc-url $POLYGON_RPC_URL --private-key $PRIVATE_KEY --constructor-args 3 $POLYGON_VERIFIER | \
     grep "Deployed to:" | awk '/0x.*/ {print $3}' )
+
+echo "Router contract deployed on Polygon Testnet at $POLYGON_ROUTER"
+
 
 # Generate dev.yml
 
