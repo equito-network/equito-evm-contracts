@@ -22,4 +22,6 @@ interface IRouter {
         uint256 verifierIndex,
         bytes calldata proof
     ) external;
+
+    function chainSelector() external view returns (uint256);
 }

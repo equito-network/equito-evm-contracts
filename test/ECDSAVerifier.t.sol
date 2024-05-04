@@ -82,7 +82,7 @@ contract ECDSAVerifierTest is Test {
         assert(verifier.verifySignatures(messageHash, proof));
     }
 
-    function testVerifyEmptyMessagesFails() public {
+    function testVerifyEmptyMessagesFails() public view {
         EquitoMessage[] memory messages = new EquitoMessage[](0);
         bytes memory proof = "";
 
@@ -96,7 +96,7 @@ contract ECDSAVerifierTest is Test {
         assert(!verifier.verifySignatures(messageHash, proof));
     }
 
-    function testVerifyDuplicateSignaturesFails() public view {
+    function testVerifyDuplicateSignaturesFails() public {
         (, uint256 alithSecret) = makeAddrAndKey("alith");
         bytes32 messageHash = keccak256(abi.encode("Hello, World!"));
 
