@@ -57,7 +57,7 @@ contract CrossChainSwapTest is Test {
         destinationToken[0] = abi.encode(nativeToken);
         price[0] = 1_000;
         swap.setTokenPrice(chainSelector, destinationToken, price);
-        assertEq(swap.tokenPrice(1, abi.encode(nativeToken)), 1 ether);
+        assertEq(swap.tokenPrice(1, abi.encode(nativeToken)), 1_000);
     }
 
     function testCalculateDestinationTokenAmount() public {
@@ -83,6 +83,26 @@ contract CrossChainSwapTest is Test {
             ),
             500
         );
+    }
+
+    function testCannoSetSwapAddressIfNotOwner() public {
+        vm.prank(alice);
+        uint256[] memory chainSelectors = new uint256[](1);
+        bytes[] memory swapAddresses = new bytes[](1);
+        chainSelectors[0] = 1;
+        swapAddresses[0] = abi.encode(address(swap));
+        vm.expectRevert();
+        swap.setSwapAddress(chainSelectors, swapAddresses);
+    }
+
+    function testSetSwapAddress() public {
+        vm.prank(owner);
+        uint256[] memory chainSelectors = new uint256[](1);
+        bytes[] memory swapAddresses = new bytes[](1);
+        chainSelectors[0] = 1;
+        swapAddresses[0] = abi.encode(address(swap));
+        swap.setSwapAddress(chainSelectors, swapAddresses);
+        assertEq(swap.swapAddress(1), abi.encode(address(swap)));
     }
 
     function testSwapNativeToERC20() public {
