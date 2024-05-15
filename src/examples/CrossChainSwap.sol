@@ -12,6 +12,7 @@ import {TransferHelper} from "../libraries/TransferHelper.sol";
 /// Example contract that demonstrates how to swap tokens between different chains using Equito.
 contract CrossChainSwap is EquitoApp, Ownable {
     error InvalidLength();
+    error InvalidSender();
 
     event SwapRequested(
         bytes32 indexed messageId,
@@ -27,14 +28,16 @@ contract CrossChainSwap is EquitoApp, Ownable {
     address internal constant NATIVE_TOKEN =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    /// The EquitoReceiver contract address on the destination chain.
+    /// The addressed of the valid Cross Chain Swap contracts deployed on each chain.
     mapping(uint256 => bytes) public swapAddress;
 
     /// The prices of the various supported tokens on each chain.
     /// The first mapping is the chain selector, and the second mapping is the token address.
     mapping(uint256 => mapping(bytes => uint256)) public tokenPrice;
 
-    constructor(address _router) payable EquitoApp(_router) Ownable(msg.sender) {}
+    constructor(
+        address _router
+    ) payable EquitoApp(_router) Ownable(msg.sender) {}
 
     struct TokenAmount {
         bytes token;
@@ -85,8 +88,16 @@ contract CrossChainSwap is EquitoApp, Ownable {
     }
 
     /// Override the _receiveMessage function of IEquitoReceiver to handle the received messages.
-    /// In this case, we transfer the tokens to the appropriate recipient account.
+    /// In this case, we check if the message comes from a valid sender,
+    /// then we transfer the tokens to the appropriate recipient account.
     function _receiveMessage(EquitoMessage calldata message) internal override {
+        if (
+            message.sender.length !=
+            swapAddress[message.sourceChainSelector].length ||
+            keccak256(message.sender) !=
+            keccak256(swapAddress[message.sourceChainSelector])
+        ) revert InvalidSender();
+
         TokenAmount memory tokenAmount = abi.decode(
             message.data,
             (TokenAmount)
