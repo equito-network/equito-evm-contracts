@@ -39,9 +39,7 @@ abstract contract EquitoApp is IEquitoReceiver {
         uint256 destinationChainSelector,
         bytes calldata data
     ) external returns (bytes32) {
-        bytes32 messageId = router.sendMessage(receiver, destinationChainSelector, data);
-        emit MessageSent(receiver, destinationChainSelector, data);
-        return messageId;
+        return router.sendMessage(receiver, destinationChainSelector, data);
     }
 
     /// @notice Receives a cross-chain message from the Router Contract.
@@ -49,7 +47,6 @@ abstract contract EquitoApp is IEquitoReceiver {
     /// Only the Router Contract is allowed to call this function.
     /// @param message The Equito message received.
     function receiveMessage(EquitoMessage calldata message) external override onlyRouter {
-        emit MessageReceived(msg.sender, message.data);
         _receiveMessage(message);
     }
 
