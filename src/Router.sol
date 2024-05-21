@@ -48,7 +48,7 @@ contract Router is IRouter {
         EquitoMessage memory newMessage = EquitoMessage({
             blockNumber: block.number,
             sourceChainSelector: chainSelector,
-            sender: abi.encode(msg.sender),
+            sender: abi.encodePacked(msg.sender),
             destinationChainSelector: destinationChainSelector,
             receiver: receiver,
             data: data

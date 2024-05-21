@@ -28,9 +28,9 @@ library EquitoMessageLibrary {
         // This hashing scheme is also used by RMN. If changing it, please notify the RMN maintainers.
         return
             keccak256(
-                abi.encode(
+                abi.encodePacked(
                     keccak256(
-                        abi.encode(
+                        abi.encodePacked(
                             original.sender,
                             original.receiver,
                             original.blockNumber,

@@ -21,20 +21,28 @@ contract RouterTest is Test {
         receiver = new MockReceiver();
     }
 
+    function testEncodeGasEstimation() public {
+        abi.encode("Hello, World!");
+    }
+
+    function testEncodePackedGasEstimation() public {
+        abi.encodePacked("Hello, World!");
+    }
+
     function testSendMessage() public {
         vm.prank(alice);
-        bytes memory data = abi.encode("Hello, World!");
+        bytes memory data = abi.encodePacked("Hello, World!");
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(alice),
+            sender: abi.encodePacked(alice),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: abi.encodePacked(receiver),
             data: data
         });
 
-        bytes32 newMessage = router.sendMessage(abi.encode(receiver), 2, data);
+        bytes32 newMessage = router.sendMessage(abi.encodePacked(receiver), 2, data);
 
         assertEq(EquitoMessageLibrary._hash(message), newMessage);
     }
