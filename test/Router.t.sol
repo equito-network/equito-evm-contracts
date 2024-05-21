@@ -38,11 +38,11 @@ contract RouterTest is Test {
             sourceChainSelector: 1,
             sender: abi.encodePacked(alice),
             destinationChainSelector: 2,
-            receiver: abi.encodePacked(receiver),
+            receiver: abi.encode(receiver),
             data: data
         });
 
-        bytes32 newMessage = router.sendMessage(abi.encodePacked(receiver), 2, data);
+        bytes32 newMessage = router.sendMessage(abi.encode(receiver), 2, data);
 
         assertEq(EquitoMessageLibrary._hash(message), newMessage);
     }
@@ -54,7 +54,7 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(alice),
+            sender: abi.encodePacked(alice),
             destinationChainSelector: 2,
             receiver: abi.encode(receiver),
             data: data
@@ -69,23 +69,23 @@ contract RouterTest is Test {
 
     function testRouteMessagesWithDuplicateMessage() public {
         vm.prank(alice);
-        bytes memory data1 = abi.encode("Hello, World!");
+        bytes memory data1 = abi.encodePacked("Hello, World!");
 
         EquitoMessage memory message1 = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(alice),
+            sender: abi.encodePacked(alice),
             destinationChainSelector: 2,
             receiver: abi.encode(receiver),
             data: data1
         });
 
-        bytes memory data2 = abi.encode("This is a test!");
+        bytes memory data2 = abi.encodePacked("This is a test!");
 
         EquitoMessage memory message2 = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(alice),
+            sender: abi.encodePacked(alice),
             destinationChainSelector: 2,
             receiver: abi.encode(receiver),
             data: data2
