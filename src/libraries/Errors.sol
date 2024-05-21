@@ -27,4 +27,10 @@ library Errors {
 
     /// @notice Thrown when a verifier address provided is zero.
     error VerifierZeroAddress();
+
+    /// @notice Thrown when the lengths of arrays are invalid.
+    error InvalidLength();
+
+    /// @notice Thrown when the sender of a message is invalid.
+    error InvalidSender();
 }
