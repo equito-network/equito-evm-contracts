@@ -7,6 +7,7 @@ import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
 import {Errors} from "./libraries/Errors.sol";
+import {console} from "forge-std/console.sol";
 
 /// @title Router
 /// @notice The Router contract is used in the Equito Protocol to exchange messages with different blockchains.
@@ -56,6 +57,7 @@ contract Router is IRouter {
 
         emit MessageSendRequested(msg.sender, newMessage);
 
+        console.logBytes32(EquitoMessageLibrary._hash(newMessage));
         return EquitoMessageLibrary._hash(newMessage);
     }
 

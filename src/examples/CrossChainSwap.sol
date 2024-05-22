@@ -8,6 +8,7 @@ import {EquitoApp} from "../EquitoApp.sol";
 import {EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
 import {IRouter} from "../interfaces/IRouter.sol";
 import {TransferHelper} from "../libraries/TransferHelper.sol";
+import {console} from "forge-std/console.sol";
 
 /// Example contract that demonstrates how to swap tokens between different chains using Equito.
 contract CrossChainSwap is EquitoApp, Ownable {
@@ -169,6 +170,12 @@ contract CrossChainSwap is EquitoApp, Ownable {
             destinationToken
         );
 
+        console.logUint(destinationChainSelector);
+        console.logUint(destinationAmount);
+        console.logAddress(sourceToken);
+        console.logUint(sourceAmount);
+        console.logBytes(recipient);
+
         // Initialize a router client instance to interact with cross-chain router
         IRouter router = IRouter(router);
 
@@ -184,6 +191,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
             destinationChainSelector,
             abi.encode(tokenAmount)
         );
+        console.logBytes32(messageId);
 
         // Emit an event with message details
         emit SwapRequested(

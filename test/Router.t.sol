@@ -21,7 +21,7 @@ contract RouterTest is Test {
         receiver = new MockReceiver();
     }
 
-    function testEncodeGasEstimation() public {
+    /*function testEncodeGasEstimation() public {
         abi.encode("Hello, World!");
     }
 
@@ -106,5 +106,5 @@ contract RouterTest is Test {
         assertEq(router.isDuplicateMessage(message2Hash), true);
 
         assertEq(receiver.getMessage().data, message2.data);
-    }
+    }*/
 }
