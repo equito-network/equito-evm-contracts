@@ -15,18 +15,16 @@ import {Errors} from "../src/libraries/Errors.sol";
 contract EquitoAppTest is Test {
     MockRouter router;
     MockEquitoApp app;
-    MockReceiver receiver;
 
     address constant ALICE = address(0xA11CE);
 
     function setUp() public {
         router = new MockRouter();
         app = new MockEquitoApp(address(router));
-        receiver = new MockReceiver();
     }
     
     function testSendMessage() public {
-        bytes memory receiverAddress = abi.encode(address(receiver));
+        bytes memory receiverAddress = abi.encode(address(app));
         uint256 destinationChainSelector = 2;
         bytes memory data = hex"123456";
 
@@ -44,7 +42,7 @@ contract EquitoAppTest is Test {
             sourceChainSelector: 1,
             sender: abi.encode(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: abi.encode(address(app)),
             data: hex"123456"
         });
         
