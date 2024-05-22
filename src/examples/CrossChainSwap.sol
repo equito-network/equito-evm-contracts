@@ -8,12 +8,10 @@ import {EquitoApp} from "../EquitoApp.sol";
 import {EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
 import {IRouter} from "../interfaces/IRouter.sol";
 import {TransferHelper} from "../libraries/TransferHelper.sol";
+import {Errors} from "../libraries/Errors.sol";
 
 /// Example contract that demonstrates how to swap tokens between different chains using Equito.
 contract CrossChainSwap is EquitoApp, Ownable {
-    error InvalidLength();
-    error InvalidSender();
-
     event SwapRequested(
         bytes32 indexed messageId,
         uint256 indexed destinationChainSelector,
@@ -66,7 +64,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
         bytes[] memory swapAddresses
     ) external onlyOwner {
         if (chainSelectors.length != swapAddresses.length)
-            revert InvalidLength();
+            revert Errors.InvalidLength();
         for (uint256 i = 0; i < chainSelectors.length; i++) {
             swapAddress[chainSelectors[i]] = swapAddresses[i];
         }
@@ -81,7 +79,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
         if (
             chainSelectors.length != prices.length ||
             prices.length != destinationTokens.length
-        ) revert InvalidLength();
+        ) revert Errors.InvalidLength();
         for (uint256 i = 0; i < chainSelectors.length; i++) {
             tokenPrice[chainSelectors[i]][destinationTokens[i]] = prices[i];
         }
@@ -96,7 +94,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
             swapAddress[message.sourceChainSelector].length ||
             keccak256(message.sender) !=
             keccak256(swapAddress[message.sourceChainSelector])
-        ) revert InvalidSender();
+        ) revert Errors.InvalidSender();
 
         TokenAmount memory tokenAmount = abi.decode(
             message.data,

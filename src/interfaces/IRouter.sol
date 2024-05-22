@@ -40,6 +40,16 @@ interface IRouter {
         bytes calldata proof
     ) external;
 
+    /// @notice Adds a new verifier to the Router contract.
+    /// @param _newVerifier The address of the new verifier.
+    /// @param verifierIndex The index of the verifier used to verify the new verifier.
+    /// @param proof The proof provided by the verifier.
+    function addVerifier(
+        address _newVerifier,
+        uint256 verifierIndex,
+        bytes calldata proof
+    ) external;
+
     /// @notice Returns the chain selector of the current chain.
     function chainSelector() external view returns (uint256);
 }
