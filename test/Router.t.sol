@@ -189,15 +189,6 @@ contract RouterTest is Test {
         router.addVerifier(address(verifier), invalidVerifierIndex, proof);
     }
 
-    /// @dev Tests adding a verifier with a zero address
-    function testAddVerifierZeroAddress() public {
-        bytes memory proof = abi.encode("proof");
-        uint256 verifierIndex = 0;
-
-        vm.expectRevert(abi.encodeWithSelector(Errors.VerifierZeroAddress.selector));
-        router.addVerifier(address(0), verifierIndex, proof);
-    }
-
     /// @dev Tests adding a verifier with an invalid proof
     function testAddVerifierInvalidProof() public {
         uint256 verifierIndex = 0;

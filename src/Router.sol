@@ -105,9 +105,6 @@ contract Router is IRouter {
         if (verifierIndex >= verifiers.length) {
             revert Errors.InvalidVerifierIndex();
         }
-        if (_newVerifier == address(0)) {
-            revert Errors.VerifierZeroAddress();
-        }
 
         if (verifiers[verifierIndex].verifySignatures(keccak256(abi.encode(_newVerifier)), proof)) {
             verifiers.push(IEquitoVerifier(_newVerifier));
