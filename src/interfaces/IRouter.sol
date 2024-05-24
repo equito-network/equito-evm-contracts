@@ -19,6 +19,14 @@ interface IRouter {
     /// @param verifier The address of the new verifier.
     event VerifierAdded(address indexed verifier);
 
+    /// @notice Emitted when messages are successfully delivered for execution.
+    /// @param messages The list of messages that have been delivered for execution.
+    event MessagesDelivered(EquitoMessage[] messages);
+
+    /// @notice Emitted when messages are successfully executed.
+    /// @param messages The list of messages that have been executed.
+    event MessagesExecuted(EquitoMessage[] messages);
+
     /// @notice Sends a cross-chain message using Equito.
     /// @param receiver The address of the receiver.
     /// @param destinationChainSelector The chain selector of the destination chain.
@@ -38,6 +46,22 @@ interface IRouter {
         EquitoMessage[] calldata messages,
         uint256 verifierIndex,
         bytes calldata proof
+    ) external;
+
+    /// @notice Delivers messages to be stored for later execution.
+    /// @param messages The list of messages to be delivered.
+    /// @param verifierIndex The index of the verifier used to verify the messages.
+    /// @param proof The proof provided by the verifier.
+    function deliverMessages(
+        EquitoMessage[] calldata messages,
+        uint256 verifierIndex,
+        bytes calldata proof
+    ) external;
+
+    /// @notice Executes the stored messages.
+    /// @param messages The list of messages to be executed.
+    function executeMessages(
+        EquitoMessage[] calldata messages
     ) external;
 
     /// @notice Adds a new verifier to the Router contract.

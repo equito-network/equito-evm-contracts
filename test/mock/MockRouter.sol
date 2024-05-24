@@ -33,6 +33,16 @@ contract MockRouter is IRouter {
         bytes calldata proof
     ) external {}
 
+    function deliverMessages(
+        EquitoMessage[] calldata messages,
+        uint256 verifierIndex,
+        bytes calldata proof
+    ) external {}
+
+    function executeMessages(
+        EquitoMessage[] calldata messages
+    ) external {}
+
     function addVerifier(
         address _newVerifier,
         uint256 verifierIndex,

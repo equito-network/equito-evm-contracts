@@ -91,6 +91,51 @@ contract Router is IRouter {
         emit MessageSendDelivered(messages);
     }
 
+    /// @notice Delivers messages to be stored for later execution.
+    /// @param messages The list of messages to be delivered.
+    /// @param verifierIndex The index of the verifier used to verify the messages.
+    /// @param proof The proof provided by the verifier.
+    function deliverMessages(
+        EquitoMessage[] calldata messages,
+        uint256 verifierIndex,
+        bytes calldata proof
+    ) external {
+        if (verifierIndex >= verifiers.length) {
+            revert Errors.InvalidVerifierIndex();
+        }
+
+        if (!verifiers[verifierIndex].verifyMessages(messages, proof)) {
+            revert Errors.InvalidMessagesProof();
+        }
+
+        for (uint256 i = 0; i < messages.length; i++) {
+            bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
+            isDuplicateMessage[messageHash] = true;
+        }
+
+        emit MessagesDelivered(messages);
+    }
+
+    /// @notice Executes the stored messages.
+    /// @param messages The list of messages to be executed.
+    function executeMessages(
+        EquitoMessage[] calldata messages
+    ) external {
+        for (uint256 i = 0; i < messages.length; i++) {
+            bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
+
+            if (isDuplicateMessage[messageHash]) {
+                address receiver = abi.decode(messages[i].receiver, (address));
+                IEquitoReceiver(receiver).receiveMessage(messages[i]);
+                delete isDuplicateMessage[messageHash];
+            } else {
+                revert Errors.MessageNotDeliveredForExecution();
+            }
+        }
+
+        emit MessagesExecuted(messages);
+    }
+
     /// @notice Adds a new verifier to the Router contract.
     /// It requires a proof to be provided, to ensure that the Verifier is authorized to be added,
     /// verified by one of the existing Verifiers, determined by `verifierIndex`.
