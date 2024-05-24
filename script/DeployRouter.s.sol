@@ -36,7 +36,7 @@ contract DeployRouter is Script {
         validators[2] = CHARLETH;
 
         console.log("======== Deploying ECDSAVerifier Verifier =========");
-        verifier = new ECDSAVerifier(validators);
+        verifier = new ECDSAVerifier(validators, 0);
         console.log("Deployed ECDSAVerifier Verifier successfully =>", address(verifier));
 
         console.log("======== Deploying Router =========");
