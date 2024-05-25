@@ -10,5 +10,5 @@ import {IEquitoVerifier} from "../../src/interfaces/IEquitoVerifier.sol";
 contract MockEquitoApp is EquitoApp {
     constructor(address _router) EquitoApp(_router) {}
 
-    function _receiveMessage(EquitoMessage calldata) internal virtual override {}
+    function _receiveMessageFromPeer(EquitoMessage calldata) internal virtual override {}
 }

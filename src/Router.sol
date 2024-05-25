@@ -10,9 +10,9 @@ import {Errors} from "./libraries/Errors.sol";
 
 /// @title Router
 /// @notice The Router contract is used in the Equito Protocol to exchange messages with different blockchains.
-/// Equito Validators will listen to the events emitted by this contract's `sendMessage` function,
-/// to collect and relay messages to the appropriate destination chains.
-/// Equito Validators will also deliver messages to this contract, to be routed to the appropriate receivers.
+///         Equito Validators will listen to the events emitted by this contract's `sendMessage` function,
+///         to collect and relay messages to the appropriate destination chains.
+///         Equito Validators will also deliver messages to this contract, to be routed to the appropriate receivers.
 contract Router is IRouter {
     /// @notice The chain selector for the chain where the Router contract is deployed.
     uint256 public immutable chainSelector;
@@ -21,7 +21,7 @@ contract Router is IRouter {
     IEquitoVerifier[] public verifiers;
 
     /// @notice Stores the messages that have already been processed to prevent replay attacks,
-    /// avoiding duplicate messages to be processed twice, hence the name.
+    ///         avoiding duplicate messages to be processed twice, hence the name.
     mapping(bytes32 => bool) public isDuplicateMessage;
 
     /// @notice Initializes the Router contract with a chain selector and an initial verifier.
@@ -92,8 +92,8 @@ contract Router is IRouter {
     }
 
     /// @notice Adds a new verifier to the Router contract.
-    /// It requires a proof to be provided, to ensure that the Verifier is authorized to be added,
-    /// verified by one of the existing Verifiers, determined by `verifierIndex`.
+    ///         It requires a proof to be provided, to ensure that the Verifier is authorized to be added,
+    ///         verified by one of the existing Verifiers, determined by `verifierIndex`.
     /// @param _newVerifier The address of the new verifier.
     /// @param verifierIndex The index of the verifier used to verify the new verifier.
     /// @param proof The proof provided by the verifier.

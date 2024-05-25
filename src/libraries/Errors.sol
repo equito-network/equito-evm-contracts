@@ -33,4 +33,7 @@ library Errors {
 
     /// @notice Thrown when the sender of a message is invalid.
     error InvalidSender();
+
+    /// @notice Thrown when the sender of a message is invalid.
+    error InvalidMessageSender();
 }
