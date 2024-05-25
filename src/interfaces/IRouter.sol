@@ -42,7 +42,7 @@ interface IRouter {
     /// @param messages The list of messages to be routed.
     /// @param verifierIndex The index of the verifier used to verify the messages.
     /// @param proof The proof provided by the verifier.
-    function routeMessages(
+    function deliverAndExecuteMessages(
         EquitoMessage[] calldata messages,
         uint256 verifierIndex,
         bytes calldata proof

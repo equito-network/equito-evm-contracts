@@ -24,6 +24,9 @@ contract Router is IRouter {
     /// avoiding duplicate messages to be processed twice, hence the name.
     mapping(bytes32 => bool) public isDuplicateMessage;
 
+    /// @notice Stores the messages that have been delivered and are awaiting execution.
+    mapping(bytes32 => EquitoMessage) public storedMessages;
+
     /// @notice Initializes the Router contract with a chain selector and an initial verifier.
     /// @param _chainSelector The chain selector of the chain where the Router contract is deployed.
     /// @param _initialVerifier The address of the initial verifier contract.
@@ -63,7 +66,7 @@ contract Router is IRouter {
     /// @param messages The list of messages to be routed.
     /// @param verifierIndex The index of the verifier used to verify the messages.
     /// @param proof The proof provided by the verifier.
-    function routeMessages(
+    function deliverAndExecuteMessages(
         EquitoMessage[] calldata messages,
         uint256 verifierIndex,
         bytes calldata proof
@@ -108,29 +111,38 @@ contract Router is IRouter {
             revert Errors.InvalidMessagesProof();
         }
 
-        for (uint256 i = 0; i < messages.length; i++) {
+        for (uint256 i = 0; i < messages.length; ) {
             bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
-            isDuplicateMessage[messageHash] = true;
+
+            if (!isDuplicateMessage[messageHash] && storedMessages[messageHash].blockNumber == 0) {
+                storedMessages[messageHash] = messages[i];
+            }
+
+            unchecked { ++i; }
         }
 
         emit MessagesDelivered(messages);
     }
 
     /// @notice Executes the stored messages.
-    /// @param messages The list of messages to be executed.
+    /// @param messages The list of messages to be delivered.
     function executeMessages(
         EquitoMessage[] calldata messages
     ) external {
-        for (uint256 i = 0; i < messages.length; i++) {
+        for (uint256 i = 0; i < messages.length; ) {
             bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
+            EquitoMessage storage message = storedMessages[messageHash];
 
-            if (isDuplicateMessage[messageHash]) {
-                address receiver = abi.decode(messages[i].receiver, (address));
-                IEquitoReceiver(receiver).receiveMessage(messages[i]);
-                delete isDuplicateMessage[messageHash];
+            if (message.blockNumber != 0 && !isDuplicateMessage[messageHash]) {
+                address receiver = abi.decode(message.receiver, (address));
+                IEquitoReceiver(receiver).receiveMessage(message);
+                isDuplicateMessage[messageHash] = true;
+                delete storedMessages[messageHash];
             } else {
                 revert Errors.MessageNotDeliveredForExecution();
             }
+
+            unchecked { ++i; }
         }
 
         emit MessagesExecuted(messages);
