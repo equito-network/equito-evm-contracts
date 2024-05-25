@@ -125,7 +125,7 @@ contract Router is IRouter {
     }
 
     /// @notice Executes the stored messages.
-    /// @param messages The list of messages to be delivered.
+    /// @param messages The list of messages to be executed.
     function executeMessages(
         EquitoMessage[] calldata messages
     ) external {
