@@ -44,6 +44,8 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     /// @notice Internal function to set the peer addresses for different chain IDs.
     /// @param chainIds The list of chain IDs.
     /// @param addresses The list of addresses corresponding to the chain IDs.
+    /// @dev This function is internal to allow for easier overriding and extension by derived contracts,
+    ///      facilitating the reuse of peer-setting logic in different contexts.
     function _setPeers(uint256[] calldata chainIds, bytes[] calldata addresses) internal virtual onlyOwner {
         if (chainIds.length != addresses.length)
             revert Errors.InvalidLength();
