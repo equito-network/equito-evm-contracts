@@ -194,21 +194,7 @@ contract RouterTest is Test {
 
         router.deliverMessages(messages, 0, abi.encode(1));
 
-        (
-            uint256 storedBlockNumber,
-            uint256 storedSourceChainSelector,
-            bytes memory storedSender,
-            uint256 storedDestinationChainSelector,
-            bytes memory storedReceiver,
-            bytes memory storedData
-        ) = router.storedMessages(EquitoMessageLibrary._hash(messages[0]));
-
-        assertEq(storedBlockNumber, message.blockNumber);
-        assertEq(storedSourceChainSelector, message.sourceChainSelector);
-        assertEq(storedDestinationChainSelector, message.destinationChainSelector);
-        assertEq(storedSender, message.sender);
-        assertEq(storedReceiver, message.receiver);
-        assertEq(storedData, message.data);
+        assertEq(router.storedMessages(EquitoMessageLibrary._hash(messages[0])), true);
     }
 
     /// @dev Tests delivering and executing of messages with an invalid verifier index
@@ -279,32 +265,15 @@ contract RouterTest is Test {
         bytes32 messageHash = EquitoMessageLibrary._hash(messages[0]);
 
         router.deliverMessages(messages, 0, abi.encode(1));
-        (
-            uint256 storedBlockNumber,
-            uint256 storedSourceChainSelector,
-            bytes memory storedSender,
-            uint256 storedDestinationChainSelector,
-            bytes memory storedReceiver,
-            bytes memory storedData
-        ) = router.storedMessages(messageHash);
-        assertTrue(storedBlockNumber != 0, "Message not delivered");
+        assertTrue(router.storedMessages(messageHash), "Message not delivered");
 
         vm.expectEmit(true, true, false, true);
         emit MessagesExecuted(messages);
 
         router.executeMessages(messages);
 
-        (
-            uint256 storedBlockNumber2,
-            uint256 storedSourceChainSelector2,
-            bytes memory storedSender2,
-            uint256 storedDestinationChainSelector2,
-            bytes memory storedReceiver2,
-            bytes memory storedData2
-        ) = router.storedMessages(messageHash);
-
         assertTrue(router.isDuplicateMessage(messageHash), "Message should not be marked as delivered after execution");
-        assertTrue(storedBlockNumber2 == 0, "Message should be deleted after sending");
+        assertTrue(!router.storedMessages(messageHash), "Message should be deleted after sending");
     }
 
     /// @dev Tests delivering and executing of messages to delivered for execution

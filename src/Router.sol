@@ -24,8 +24,8 @@ contract Router is IRouter {
     /// avoiding duplicate messages to be processed twice, hence the name.
     mapping(bytes32 => bool) public isDuplicateMessage;
 
-    /// @notice Stores the messages that have been delivered and are awaiting execution.
-    mapping(bytes32 => EquitoMessage) public storedMessages;
+    /// @notice Stores the message hashes that have been delivered and are awaiting execution.
+    mapping(bytes32 => bool) public storedMessages;
 
     /// @notice Initializes the Router contract with a chain selector and an initial verifier.
     /// @param _chainSelector The chain selector of the chain where the Router contract is deployed.
@@ -114,8 +114,8 @@ contract Router is IRouter {
         for (uint256 i = 0; i < messages.length; ) {
             bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
 
-            if (!isDuplicateMessage[messageHash] && storedMessages[messageHash].blockNumber == 0) {
-                storedMessages[messageHash] = messages[i];
+            if (!isDuplicateMessage[messageHash] && !storedMessages[messageHash]) {
+                storedMessages[messageHash] = true;
             }
 
             unchecked { ++i; }
@@ -131,11 +131,10 @@ contract Router is IRouter {
     ) external {
         for (uint256 i = 0; i < messages.length; ) {
             bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
-            EquitoMessage storage message = storedMessages[messageHash];
 
-            if (message.blockNumber != 0 && !isDuplicateMessage[messageHash]) {
-                address receiver = abi.decode(message.receiver, (address));
-                IEquitoReceiver(receiver).receiveMessage(message);
+            if (storedMessages[messageHash] && !isDuplicateMessage[messageHash]) {
+                address receiver = abi.decode(messages[i].receiver, (address));
+                IEquitoReceiver(receiver).receiveMessage(messages[i]);
                 isDuplicateMessage[messageHash] = true;
                 delete storedMessages[messageHash];
             } else {
