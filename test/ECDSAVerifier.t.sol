@@ -18,7 +18,7 @@ contract ECDSAVerifierTest is Test {
         validators[1] = baltathar;
         validators[2] = charleth;
 
-        verifier = new ECDSAVerifier(validators);
+        verifier = new ECDSAVerifier(validators, 0);
     }
 
     function signMessage(
@@ -59,9 +59,11 @@ contract ECDSAVerifierTest is Test {
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
         (address charleth, uint256 charlethSecret) = makeAddrAndKey("charleth");
 
+        uint256 session = verifier.session();
+
         address[] memory validators = new address[](1);
         validators[0] = charleth;
-        bytes32 messageHash = keccak256(abi.encode(validators));
+        bytes32 messageHash = keccak256(abi.encode(session, validators));
 
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),
@@ -72,6 +74,8 @@ contract ECDSAVerifierTest is Test {
         verifier.updateValidators(validators, proof);
 
         assert(verifier.validators(0) == charleth);
+        assertEq(verifier.session(), session + 1);
+
         vm.expectRevert();
         console.log(verifier.validators(1));
 

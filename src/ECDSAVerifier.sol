@@ -11,11 +11,13 @@ import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibr
 contract ECDSAVerifier is IEquitoVerifier {
     address[] public validators;
     uint256 public immutable threshold = 70;
+    uint256 public session;
 
     event ValidatorSetUpdated();
 
-    constructor(address[] memory _validators) {
+    constructor(address[] memory _validators, uint256 _session) {
         validators = _validators;
+        session = _session;
     }
 
     /// Verify that a set of EquitoMessage has been signed by a sufficient number of Validators,
@@ -43,9 +45,10 @@ contract ECDSAVerifier is IEquitoVerifier {
         address[] calldata _validators,
         bytes calldata proof
     ) external {
-        bytes32 hashed = keccak256(abi.encode(_validators));
+        bytes32 hashed = keccak256(abi.encode(session, _validators));
         if (this.verifySignatures(hashed, proof)) {
             validators = _validators;
+            session += 1;
             emit ValidatorSetUpdated();
         }
     }
