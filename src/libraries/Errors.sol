@@ -36,4 +36,10 @@ library Errors {
 
     /// @notice Thrown when a message was not delivered for execution.
     error MessageNotDeliveredForExecution();
+
+    /// @notice Thrown when the sender of a message is invalid.
+    error InvalidMessageSender();
+
+    /// @notice Thrown when the network is unsupported.
+    error UnsupportedNetwork();
 }

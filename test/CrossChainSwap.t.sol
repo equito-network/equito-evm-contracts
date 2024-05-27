@@ -129,7 +129,7 @@ contract CrossChainSwapTest is Test {
         chainSelectors[0] = 1;
         swapAddresses[0] = abi.encode(address(swap));
         swap.setSwapAddress(chainSelectors, swapAddresses);
-        assertEq(swap.swapAddress(1), abi.encode(address(swap)));
+        assertEq(swap.peers(1), abi.encode(address(swap)));
     }
 
     /// @dev Tests setting swap addresses with invalid length of inputs

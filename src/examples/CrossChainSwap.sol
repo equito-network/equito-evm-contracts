@@ -2,16 +2,23 @@
 
 pragma solidity ^0.8.23;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-
 import {EquitoApp} from "../EquitoApp.sol";
 import {EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
 import {IRouter} from "../interfaces/IRouter.sol";
 import {TransferHelper} from "../libraries/TransferHelper.sol";
 import {Errors} from "../libraries/Errors.sol";
 
-/// Example contract that demonstrates how to swap tokens between different chains using Equito.
-contract CrossChainSwap is EquitoApp, Ownable {
+/// @title CrossChainSwap
+/// @notice This contract facilitates token swaps between different blockchains using the Equito protocol.
+contract CrossChainSwap is EquitoApp {
+    /// @notice Event emitted when a token swap is requested.
+    /// @param messageId The unique identifier for the message.
+    /// @param destinationChainSelector The identifier of the destination blockchain.
+    /// @param sourceToken The address of the source token.
+    /// @param sourceAmount The amount of source tokens to be swapped.
+    /// @param destinationToken The address of the destination token.
+    /// @param destinationAmount The amount of destination tokens to be received.
+    /// @param recipient The address of the recipient on the destination chain.
     event SwapRequested(
         bytes32 indexed messageId,
         uint256 indexed destinationChainSelector,
@@ -22,29 +29,34 @@ contract CrossChainSwap is EquitoApp, Ownable {
         bytes recipient
     );
 
-    /// We use this address to represent our native token.
+    /// @dev The address used to represent the native token.
     address internal constant NATIVE_TOKEN =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    /// The addressed of the valid Cross Chain Swap contracts deployed on each chain.
-    mapping(uint256 => bytes) public swapAddress;
-
-    /// The prices of the various supported tokens on each chain.
-    /// The first mapping is the chain selector, and the second mapping is the token address.
+    /// @notice Mapping to store the prices of supported tokens on different chains.
+    /// @dev The first key is the chain selector, and the second key is the token address.
     mapping(uint256 => mapping(bytes => uint256)) public tokenPrice;
 
-    constructor(
-        address _router
-    ) payable EquitoApp(_router) Ownable(msg.sender) {}
+    /// @notice Constructor to initialize the CrossChainSwap contract.
+    /// @param _router The address of the router contract.
+    constructor(address _router) payable EquitoApp(_router) {}
 
+    /// @notice Struct to store token amount information.
+    /// @param token The address of the token.
+    /// @param amount The amount of the token.
+    /// @param recipient The address of the recipient.
     struct TokenAmount {
         bytes token;
         uint256 amount;
         bytes recipient;
     }
 
-    /// Helper function to calculate the destination token amount,
-    /// given a certain amount of source token, and the destination token.
+    /// @notice Calculate the destination token amount given the source token amount and destination token.
+    /// @param sourceToken The address of the source token.
+    /// @param amount The amount of source tokens.
+    /// @param destinationChainSelector The identifier of the destination chain.
+    /// @param destinationToken The address of the destination token.
+    /// @return The calculated amount of destination tokens.
     function calculateDestinationTokenAmount(
         bytes memory sourceToken,
         uint256 amount,
@@ -52,25 +64,25 @@ contract CrossChainSwap is EquitoApp, Ownable {
         bytes memory destinationToken
     ) public view returns (uint256) {
         IRouter router = IRouter(router);
-
         return
             (amount * tokenPrice[router.chainSelector()][sourceToken]) /
             tokenPrice[destinationChainSelector][destinationToken];
     }
 
-    /// Update the addresses of the EquitoReceiver contracts on the destination chains.
+    /// @notice Update the addresses of the EquitoReceiver contracts on the destination chains.
+    /// @param chainSelectors The list of chain selectors.
+    /// @param swapAddresses The list of swap addresses corresponding to the chain selectors.
     function setSwapAddress(
-        uint256[] memory chainSelectors,
-        bytes[] memory swapAddresses
+        uint256[] calldata chainSelectors,
+        bytes[] calldata swapAddresses
     ) external onlyOwner {
-        if (chainSelectors.length != swapAddresses.length)
-            revert Errors.InvalidLength();
-        for (uint256 i = 0; i < chainSelectors.length; i++) {
-            swapAddress[chainSelectors[i]] = swapAddresses[i];
-        }
+        _setPeers(chainSelectors, swapAddresses);
     }
 
-    /// Update the prices of the various supported tokens on different chains.
+    /// @notice Update the prices of supported tokens on different chains.
+    /// @param chainSelectors The list of chain selectors.
+    /// @param destinationTokens The list of destination token addresses.
+    /// @param prices The list of prices corresponding to the destination tokens.
     function setTokenPrice(
         uint256[] memory chainSelectors,
         bytes[] memory destinationTokens,
@@ -85,15 +97,16 @@ contract CrossChainSwap is EquitoApp, Ownable {
         }
     }
 
-    /// Override the _receiveMessage function of IEquitoReceiver to handle the received messages.
+    /// @notice Handle the received messages from peers.
     /// In this case, we check if the message comes from a valid sender,
     /// then we transfer the tokens to the appropriate recipient account.
-    function _receiveMessage(EquitoMessage calldata message) internal override {
+    /// @param message The Equito message received.
+    function _receiveMessageFromPeer(EquitoMessage calldata message) internal override {
         if (
             message.sender.length !=
-            swapAddress[message.sourceChainSelector].length ||
+            peers[message.sourceChainSelector].length ||
             keccak256(message.sender) !=
-            keccak256(swapAddress[message.sourceChainSelector])
+            keccak256(peers[message.sourceChainSelector])
         ) revert Errors.InvalidSender();
 
         TokenAmount memory tokenAmount = abi.decode(
@@ -110,7 +123,12 @@ contract CrossChainSwap is EquitoApp, Ownable {
         }
     }
 
-    /// Swap a certain amount of ERC20 token from the source chain to any token on the destination chain.
+    /// @notice Swap ERC20 tokens from the source chain to any token on the destination chain.
+    /// @param destinationChainSelector The identifier of the destination chain.
+    /// @param destinationToken The address of the destination token.
+    /// @param recipient The address of the recipient on the destination chain.
+    /// @param sourceToken The address of the source token.
+    /// @param amount The amount of source tokens to swap.
     function swap(
         uint256 destinationChainSelector,
         bytes calldata destinationToken,
@@ -134,7 +152,10 @@ contract CrossChainSwap is EquitoApp, Ownable {
         );
     }
 
-    /// Swap a certain amount of native token from the source chain to any token on the destination chain.
+    /// @notice Swap native tokens from the source chain to any token on the destination chain.
+    /// @param destinationChainSelector The identifier of the destination chain.
+    /// @param destinationToken The address of the destination token.
+    /// @param recipient The address of the recipient on the destination chain.
     function swap(
         uint256 destinationChainSelector,
         bytes calldata destinationToken,
@@ -149,9 +170,15 @@ contract CrossChainSwap is EquitoApp, Ownable {
         );
     }
 
-    /// Internal function that handles the swapping of tokens between chains.
+    /// @dev Internal function to handle token swaps between chains.
     /// It sends a message to the cross-chain router to initiate the swap.
     /// It assumes that the correct amount of sourceToken has already been received by the contract.
+    /// @param sourceToken The address of the source token.
+    /// @param sourceAmount The amount of source tokens.
+    /// @param destinationChainSelector The identifier of the destination chain.
+    /// @param destinationToken The address of the destination token.
+    /// @param recipient The address of the recipient on the destination chain.
+    /// @return messageId The unique identifier for the message.
     function _swap(
         address sourceToken,
         uint256 sourceAmount,
@@ -178,7 +205,7 @@ contract CrossChainSwap is EquitoApp, Ownable {
 
         // Send the message through the router and store the returned message ID
         messageId = router.sendMessage(
-            swapAddress[destinationChainSelector],
+            peers[destinationChainSelector],
             destinationChainSelector,
             abi.encode(tokenAmount)
         );

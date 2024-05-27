@@ -16,11 +16,15 @@ contract EquitoAppTest is Test {
     MockRouter router;
     MockEquitoApp app;
 
+    address constant OWNER = address(0x03132);
     address constant ALICE = address(0xA11CE);
+    address constant BOB = address(0xB0B);
 
     function setUp() public {
+        vm.startPrank(OWNER);
         router = new MockRouter();
         app = new MockEquitoApp(address(router));
+        vm.stopPrank();
     }
     
     function testSendMessage() public {
@@ -47,6 +51,94 @@ contract EquitoAppTest is Test {
         });
         
         vm.expectRevert(abi.encodeWithSelector(Errors.InvalidRouter.selector, address(ALICE)));
+        app.receiveMessage(message);
+    }
+
+    /// @dev Tests the functionality of the setPeers function in EquitoApp contract.
+    ///      It sets peer addresses for two different chain IDs and verifies that the
+    ///      addresses are correctly stored by the contract.
+    function testSetPeers() public {
+        vm.prank(OWNER);
+
+        uint256[] memory chainIds = new uint256[](2);
+        chainIds[0] = 1;
+        chainIds[1] = 2;
+        
+        bytes[] memory addresses = new bytes[](2);
+        addresses[0] = abi.encode(ALICE);
+        addresses[1] = abi.encode(BOB);
+
+        app.setPeers(chainIds, addresses);
+
+        bytes memory peer1 = app.peers(1);
+        bytes memory peer2 = app.peers(2);
+
+        assertEq(peer1, abi.encode(ALICE), "Peer address for chain 1 should be ALICE");
+        assertEq(peer2, abi.encode(BOB), "Peer address for chain 2 should be BOB");
+    }
+
+    /// @dev Tests receiveMessage logic with a valid peer
+    function testReceiveMessageSuccess() public {
+        vm.prank(OWNER);
+        uint256[] memory chainIds = new uint256[](1);
+        chainIds[0] = 1;
+
+        bytes[] memory addresses = new bytes[](1);
+        addresses[0] = abi.encode(ALICE);
+
+        app.setPeers(chainIds, addresses);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 2,
+            receiver: abi.encode(address(app)),
+            data: hex"123456"
+        });
+
+        vm.prank(address(router));
+        app.receiveMessage(message);
+    }
+
+    /// @dev Tests the `receiveMessage` function when the peer address is zero.
+    function testReceiveMessageForZeroLengthPeer() public {
+        vm.prank(address(router));
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(BOB),
+            destinationChainSelector: 2,
+            receiver: abi.encode(address(app)),
+            data: hex"123456"
+        });
+
+        vm.expectRevert(Errors.InvalidMessageSender.selector);
+        app.receiveMessage(message);
+    }
+
+    /// @dev Tests the `receiveMessage` function when the sender address is not equal to the expected peer address.
+    function testReceiveMessageUnequalSender() public {
+        vm.prank(OWNER);
+        uint256[] memory chainIds = new uint256[](1);
+        chainIds[0] = 1;
+
+        bytes[] memory addresses = new bytes[](1);
+        addresses[0] = abi.encode(ALICE);
+
+        app.setPeers(chainIds, addresses);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(BOB),
+            destinationChainSelector: 2,
+            receiver: abi.encode(address(app)),
+            data: hex"123456"
+        });
+
+        vm.prank(address(router));
+        vm.expectRevert(Errors.InvalidMessageSender.selector);
         app.receiveMessage(message);
     }
 }
