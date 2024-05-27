@@ -39,4 +39,7 @@ library Errors {
 
     /// @notice Thrown when the sender of a message is invalid.
     error InvalidMessageSender();
+
+    /// @notice Thrown when the network is unsupported.
+    error UnsupportedNetwork();
 }

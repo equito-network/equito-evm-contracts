@@ -78,7 +78,7 @@ contract EquitoAppTest is Test {
     }
 
     /// @dev Tests receiveMessage logic with a valid peer
-    function testReceiveMessageFromPeer() public {
+    function testReceiveMessageSuccess() public {
         vm.prank(OWNER);
         uint256[] memory chainIds = new uint256[](1);
         chainIds[0] = 1;
@@ -101,8 +101,35 @@ contract EquitoAppTest is Test {
         app.receiveMessage(message);
     }
 
-    /// @dev Tests receiveMessage logic with an invalid peer
-    function testReceiveMessageFromNonPeer() public {
+    /// @dev Tests that the receiveMessage function reverts with UnsupportedNetwork error
+    ///      when the message is sent from an unsupported network.
+    function testReceiveMessageUnsupportedNetwork() public {
+        vm.prank(address(router));
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(BOB),
+            destinationChainSelector: 2,
+            receiver: abi.encode(address(app)),
+            data: hex"123456"
+        });
+
+        vm.expectRevert(Errors.UnsupportedNetwork.selector);
+        app.receiveMessage(message);
+    }
+
+    /// @dev Tests that the receiveMessage function reverts with InvalidMessageSender error
+    ///      when the message sender does not match the expected peer address for the source chain.
+    function testReceiveMessageInvalidSender() public {
+        vm.prank(OWNER);
+        uint256[] memory chainIds = new uint256[](1);
+        chainIds[0] = 1;
+
+        bytes[] memory addresses = new bytes[](1);
+        addresses[0] = abi.encode(ALICE);
+
+        app.setPeers(chainIds, addresses);
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
