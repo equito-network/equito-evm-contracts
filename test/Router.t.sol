@@ -22,6 +22,8 @@ contract RouterTest is Test {
 
     event MessageSendRequested(address indexed sender, EquitoMessage message);
     event VerifierAdded(address indexed verifier);
+    event MessagesDelivered(EquitoMessage[] messages);
+    event MessagesExecuted(EquitoMessage[] messages);
 
     function setUp() public {
         verifier = new MockVerifier();
@@ -56,8 +58,8 @@ contract RouterTest is Test {
         assertEq(EquitoMessageLibrary._hash(message), messageHash);
     }
 
-    /// @dev Tests routing of messages with a single message successfully
-    function testRouteMessagesSuccess() public {
+    /// @dev Tests delivering and executing of messages with a single message successfully
+    function testDeliverAndExecuteMessagesSuccess() public {
         vm.prank(ALICE);
         bytes memory data = abi.encode("Hello, World!");
 
@@ -74,12 +76,12 @@ contract RouterTest is Test {
             memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
-        router.routeMessages(messages, 0, abi.encode(1));
+        router.deliverAndExecuteMessages(messages, 0, abi.encode(1));
         assertTrue(router.isDuplicateMessage(EquitoMessageLibrary._hash(messages[0])), "Message not delivered");
     }
 
-    /// @dev Tests routing of messages with an invalid verifier index
-    function testRouteMessagesInvalidVerifierIndex() public {
+    /// @dev Tests delivering and executing of messages with an invalid verifier index
+    function testDeliverAndExecuteMessagesInvalidVerifierIndex() public {
         bytes memory proof = abi.encode("proof");
         uint256 invalidVerifierIndex = 1;
         bytes memory data = abi.encode("Hello, World!");
@@ -98,11 +100,11 @@ contract RouterTest is Test {
         messages[0] = message;
 
         vm.expectRevert(abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector));
-        router.routeMessages(messages, invalidVerifierIndex, proof);
+        router.deliverAndExecuteMessages(messages, invalidVerifierIndex, proof);
     }
 
-    /// @dev Tests routing of messages with an invalid proof
-    function testRouteMessagesInvalidProof() public {
+    /// @dev Tests delivering and executing of messages with an invalid proof
+    function testDeliverAndExecuteMessagesInvalidProof() public {
         bytes memory invalidProof = "";
         uint256 verifierIndex = 0;
 
@@ -122,11 +124,11 @@ contract RouterTest is Test {
         messages[0] = message;
 
         vm.expectRevert(abi.encodeWithSelector(Errors.InvalidMessagesProof.selector));
-        router.routeMessages(messages, verifierIndex, invalidProof);
+        router.deliverAndExecuteMessages(messages, verifierIndex, invalidProof);
     }
 
-    /// @dev Tests routing of messages with duplicate messages
-    function testRouteMessagesWithDuplicateMessage() public {
+    /// @dev Tests delivering and executing of messages with duplicate messages
+    function testDeliverAndExecuteMessagesWithDuplicateMessage() public {
         vm.prank(ALICE);
         bytes memory data1 = abi.encode("Hello, World!");
 
@@ -159,12 +161,141 @@ contract RouterTest is Test {
         bytes32 message1Hash = EquitoMessageLibrary._hash(message1);
         bytes32 message2Hash = EquitoMessageLibrary._hash(message2);
 
-        router.routeMessages(messages, 0, abi.encode(1));
+        router.deliverAndExecuteMessages(messages, 0, abi.encode(1));
 
         assertTrue(router.isDuplicateMessage(message1Hash), "Message not delivered");
         assertTrue(router.isDuplicateMessage(message2Hash), "Message not delivered");
 
         assertEq(receiver.getMessage().data, message2.data);
+    }
+
+    
+    
+    /// @dev Tests delivering of messages with a single message successfully
+    function testDeliverMessagesSuccess() public {
+        vm.prank(ALICE);
+        bytes memory data = abi.encode("Hello, World!");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 2,
+            receiver: abi.encode(receiver),
+            data: data
+        });
+
+        EquitoMessage[]
+            memory messages = new EquitoMessage[](1);
+        messages[0] = message;
+
+        vm.expectEmit(true, true, false, true);
+        emit MessagesDelivered(messages);
+
+        router.deliverMessages(messages, 0, abi.encode(1));
+
+        assertEq(router.storedMessages(EquitoMessageLibrary._hash(messages[0])), true);
+    }
+
+    /// @dev Tests delivering and executing of messages with an invalid verifier index
+    function testDeliverMessagesInvalidVerifierIndex() public {
+        bytes memory proof = abi.encode("proof");
+        uint256 invalidVerifierIndex = 1;
+        bytes memory data = abi.encode("Hello, World!");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 2,
+            receiver: abi.encode(receiver),
+            data: data
+        });
+
+        EquitoMessage[]
+            memory messages = new EquitoMessage[](1);
+        messages[0] = message;
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector));
+        router.deliverMessages(messages, invalidVerifierIndex, proof);
+    }
+
+    /// @dev Tests delivering and executing of messages with an invalid proof
+    function testDeliverMessagesInvalidProof() public {
+        bytes memory invalidProof = "";
+        uint256 verifierIndex = 0;
+
+        bytes memory data = abi.encode("Hello, World!");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 2,
+            receiver: abi.encode(receiver),
+            data: data
+        });
+
+        EquitoMessage[]
+            memory messages = new EquitoMessage[](1);
+        messages[0] = message;
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidMessagesProof.selector));
+        router.deliverMessages(messages, verifierIndex, invalidProof);
+    }
+
+    /// @dev Tests executing of messages with a single message successfully
+    function testExecuteMessagesSuccess() public {
+        vm.prank(ALICE);
+        bytes memory data = abi.encode("Hello, World!");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 2,
+            receiver: abi.encode(receiver),
+            data: data
+        });
+
+        EquitoMessage[]
+            memory messages = new EquitoMessage[](1);
+        messages[0] = message;
+
+        bytes32 messageHash = EquitoMessageLibrary._hash(messages[0]);
+
+        router.deliverMessages(messages, 0, abi.encode(1));
+        assertTrue(router.storedMessages(messageHash), "Message not delivered");
+
+        vm.expectEmit(true, true, false, true);
+        emit MessagesExecuted(messages);
+
+        router.executeMessages(messages);
+
+        assertTrue(router.isDuplicateMessage(messageHash), "Message should not be marked as delivered after execution");
+        assertTrue(!router.storedMessages(messageHash), "Message should be deleted after sending");
+    }
+
+    /// @dev Tests delivering and executing of messages to delivered for execution
+    function testExecuteMessagesMessageNotDelivered() public {
+        vm.prank(ALICE);
+        bytes memory data = abi.encode("Hello, World!");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 2,
+            receiver: abi.encode(receiver),
+            data: data
+        });
+
+        EquitoMessage[]
+            memory messages = new EquitoMessage[](1);
+        messages[0] = message;
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.MessageNotDeliveredForExecution.selector));
+        router.executeMessages(messages);
     }
 
     /// @dev Tests adding a verifier to the Router contract successfully
