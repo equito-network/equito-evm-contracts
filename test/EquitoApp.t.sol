@@ -101,9 +101,8 @@ contract EquitoAppTest is Test {
         app.receiveMessage(message);
     }
 
-    /// @dev Tests that the receiveMessage function reverts with UnsupportedNetwork error
-    ///      when the message is sent from an unsupported network.
-    function testReceiveMessageUnsupportedNetwork() public {
+    /// @dev Tests the `receiveMessage` function when the peer address is zero.
+    function testReceiveMessageForZeroLengthPeer() public {
         vm.prank(address(router));
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
@@ -114,13 +113,12 @@ contract EquitoAppTest is Test {
             data: hex"123456"
         });
 
-        vm.expectRevert(Errors.UnsupportedNetwork.selector);
+        vm.expectRevert(Errors.InvalidMessageSender.selector);
         app.receiveMessage(message);
     }
 
-    /// @dev Tests that the receiveMessage function reverts with InvalidMessageSender error
-    ///      when the message sender does not match the expected peer address for the source chain.
-    function testReceiveMessageInvalidSender() public {
+    /// @dev Tests the `receiveMessage` function when the sender address is not equal to the expected peer address.
+    function testReceiveMessageUnequalSender() public {
         vm.prank(OWNER);
         uint256[] memory chainIds = new uint256[](1);
         chainIds[0] = 1;

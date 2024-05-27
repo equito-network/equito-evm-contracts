@@ -77,11 +77,7 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     function receiveMessage(EquitoMessage calldata message) external override onlyRouter {
         bytes memory peerAddress = peers[message.sourceChainSelector];
 
-        if (peerAddress.length == 0) {
-            revert Errors.UnsupportedNetwork();
-        }
-
-        if (keccak256(peerAddress) != keccak256(message.sender)) {
+        if (peerAddress.length == 0 || keccak256(peerAddress) != keccak256(message.sender)) {
             _receiveMessageFromNonPeer(message);
         } else {
             _receiveMessageFromPeer(message);
