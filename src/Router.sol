@@ -24,6 +24,9 @@ contract Router is IRouter {
     ///         avoiding duplicate messages to be processed twice, hence the name.
     mapping(bytes32 => bool) public isDuplicateMessage;
 
+    /// @notice Stores the message hashes that have been delivered and are awaiting execution.
+    mapping(bytes32 => bool) public storedMessages;
+
     /// @notice Initializes the Router contract with a chain selector and an initial verifier.
     /// @param _chainSelector The chain selector of the chain where the Router contract is deployed.
     /// @param _initialVerifier The address of the initial verifier contract.
@@ -63,7 +66,7 @@ contract Router is IRouter {
     /// @param messages The list of messages to be routed.
     /// @param verifierIndex The index of the verifier used to verify the messages.
     /// @param proof The proof provided by the verifier.
-    function routeMessages(
+    function deliverAndExecuteMessages(
         EquitoMessage[] calldata messages,
         uint256 verifierIndex,
         bytes calldata proof
@@ -89,6 +92,59 @@ contract Router is IRouter {
         }
 
         emit MessageSendDelivered(messages);
+    }
+
+    /// @notice Delivers messages to be stored for later execution.
+    /// @param messages The list of messages to be delivered.
+    /// @param verifierIndex The index of the verifier used to verify the messages.
+    /// @param proof The proof provided by the verifier.
+    function deliverMessages(
+        EquitoMessage[] calldata messages,
+        uint256 verifierIndex,
+        bytes calldata proof
+    ) external {
+        if (verifierIndex >= verifiers.length) {
+            revert Errors.InvalidVerifierIndex();
+        }
+
+        if (!verifiers[verifierIndex].verifyMessages(messages, proof)) {
+            revert Errors.InvalidMessagesProof();
+        }
+
+        for (uint256 i = 0; i < messages.length; ) {
+            bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
+
+            if (!isDuplicateMessage[messageHash] && !storedMessages[messageHash]) {
+                storedMessages[messageHash] = true;
+            }
+
+            unchecked { ++i; }
+        }
+
+        emit MessagesDelivered(messages);
+    }
+
+    /// @notice Executes the stored messages.
+    /// @param messages The list of messages to be executed.
+    function executeMessages(
+        EquitoMessage[] calldata messages
+    ) external {
+        for (uint256 i = 0; i < messages.length; ) {
+            bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
+
+            if (storedMessages[messageHash] && !isDuplicateMessage[messageHash]) {
+                address receiver = abi.decode(messages[i].receiver, (address));
+                IEquitoReceiver(receiver).receiveMessage(messages[i]);
+                isDuplicateMessage[messageHash] = true;
+                delete storedMessages[messageHash];
+            } else {
+                revert Errors.MessageNotDeliveredForExecution();
+            }
+
+            unchecked { ++i; }
+        }
+
+        emit MessagesExecuted(messages);
     }
 
     /// @notice Adds a new verifier to the Router contract.

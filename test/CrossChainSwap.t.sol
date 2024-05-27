@@ -201,7 +201,7 @@ contract CrossChainSwapTest is Test {
         uint256 bobBalanceBefore = token0.balanceOf(BOB);
         EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
-        router.routeMessages(messages, 0, bytes("0"));
+        router.deliverAndExecuteMessages(messages, 0, bytes("0"));
         uint256 bobBalanceAfter = token0.balanceOf(BOB);
         assertEq(bobBalanceAfter - bobBalanceBefore, 500);
     }
@@ -264,7 +264,7 @@ contract CrossChainSwapTest is Test {
         uint256 bobBalanceBefore = BOB.balance;
         EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
-        router.routeMessages(messages, 0, bytes("0"));
+        router.deliverAndExecuteMessages(messages, 0, bytes("0"));
         uint256 bobBalanceAfter = BOB.balance;
         assertEq(bobBalanceAfter - bobBalanceBefore, 2_000);
     }

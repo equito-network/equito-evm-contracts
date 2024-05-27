@@ -34,6 +34,9 @@ library Errors {
     /// @notice Thrown when the sender of a message is invalid.
     error InvalidSender();
 
+    /// @notice Thrown when a message was not delivered for execution.
+    error MessageNotDeliveredForExecution();
+
     /// @notice Thrown when the sender of a message is invalid.
     error InvalidMessageSender();
 }

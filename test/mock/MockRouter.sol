@@ -27,10 +27,20 @@ contract MockRouter is IRouter {
             );
     }
     
-    function routeMessages(
+    function deliverAndExecuteMessages(
         EquitoMessage[] calldata messages,
         uint256 verifierIndex,
         bytes calldata proof
+    ) external {}
+
+    function deliverMessages(
+        EquitoMessage[] calldata messages,
+        uint256 verifierIndex,
+        bytes calldata proof
+    ) external {}
+
+    function executeMessages(
+        EquitoMessage[] calldata messages
     ) external {}
 
     function addVerifier(
