@@ -2,9 +2,15 @@
 
 pragma solidity ^0.8.23;
 
-// helper methods for interacting with ERC20 tokens and sending ETH that do not consistently return true/false
+/// @title TransferHelper
+/// @notice Library with helper methods for interacting with ERC20 tokens and sending ETH that do not consistently return true/false.
 library TransferHelper {
-    // Directly call the token contract to approve
+
+    /// @notice Approves a specified amount of tokens to be spent by a spender.
+    /// @param token The address of the ERC20 token contract.
+    /// @param to The address of the spender.
+    /// @param value The amount of tokens to approve.
+    /// @dev Calls the `approve` function on the token contract.
     function safeApprove(address token, address to, uint256 value) internal {
         // The signature function is bytes4(keccak256(bytes('approve(address,uint256)')));
         (bool success, bytes memory data) = token.call(
@@ -17,7 +23,11 @@ library TransferHelper {
         );
     }
 
-    // Directly call the token contract to transfer
+    /// @notice Transfers a specified amount of tokens to a recipient.
+    /// @param token The address of the ERC20 token contract.
+    /// @param to The address of the recipient.
+    /// @param value The amount of tokens to transfer.
+    /// @dev Calls the `transfer` function on the token contract.
     function safeTransfer(address token, address to, uint256 value) internal {
         // The signature function is bytes4(keccak256(bytes('transfer(address,uint256)')));
         (bool success, bytes memory data) = token.call(
@@ -30,7 +40,12 @@ library TransferHelper {
         );
     }
 
-    // Directly call the token contract to transferFrom
+    /// @notice Transfers a specified amount of tokens from a sender to a recipient.
+    /// @param token The address of the ERC20 token contract.
+    /// @param from The address of the sender.
+    /// @param to The address of the recipient.
+    /// @param value The amount of tokens to transfer.
+    /// @dev Calls the `transferFrom` function on the token contract.
     function safeTransferFrom(
         address token,
         address from,
@@ -48,7 +63,10 @@ library TransferHelper {
         );
     }
 
-    // Directly call the token contract to transfer
+    /// @notice Transfers a specified amount of ETH to a recipient.
+    /// @param to The address of the recipient.
+    /// @param value The amount of ETH to transfer.
+    /// @dev Calls the recipient with the specified amount of ETH.
     function safeTransferETH(address to, uint256 value) internal {
         (bool success, ) = to.call{value: value}(new bytes(0));
         // Check if the call was successful
