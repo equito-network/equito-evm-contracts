@@ -4,24 +4,33 @@ pragma solidity ^0.8.23;
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
 
-/// The ECDSAVerifier contract is used in the Equito Protocol to verify that a set of EquitoMessage
-/// has been signed by a sufficient number of Validators, determined by the threshold.
-/// The Current Validator Set's addresses are stored in the contract, allowing for updates.
-/// Signatures are verified using the ECDSA signature scheme, following the Ethereum standard.
+/// @title ECDSAVerifier
+/// @notice This contract is part of the Equito Protocol and verifies that a set of `EquitoMessage` instances
+///         have been signed by a sufficient number of Validators, as determined by the threshold.
+/// @dev Uses ECDSA for signature verification, adhering to the Ethereum standard.
 contract ECDSAVerifier is IEquitoVerifier {
+    /// @notice The list of validator addresses.
     address[] public validators;
+    /// @notice The threshold percentage of validator signatures required for verification.
     uint256 public immutable threshold = 70;
+    /// @notice The current session identifier for the validator set.
     uint256 public session;
 
+    /// @notice Emitted when the validator set is updated.
     event ValidatorSetUpdated();
 
+    /// @notice Initializes the contract with the initial validator set and session identifier.
+    /// @param _validators The initial list of validator addresses.
+    /// @param _session The initial session identifier.
     constructor(address[] memory _validators, uint256 _session) {
         validators = _validators;
         session = _session;
     }
 
-    /// Verify that a set of EquitoMessage has been signed by a sufficient number of Validators,
-    /// determined by the threshold.
+    /// @notice Verifies that a set of `EquitoMessage` instances have been signed by a sufficient number of Validators.
+    /// @param messages The array of `EquitoMessage` instances to verify.
+    /// @param proof The concatenated ECDSA signatures from the validators.
+    /// @return True if the messages are verified successfully, otherwise false.
     function verifyMessages(
         EquitoMessage[] calldata messages,
         bytes calldata proof
@@ -39,8 +48,9 @@ contract ECDSAVerifier is IEquitoVerifier {
         return this.verifySignatures(hashed, proof);
     }
 
-    /// Update the list of Validators.
-    /// The new set should be signed by a sufficient number of Validators, determined by the threshold.
+    /// @notice Updates the list of Validators.
+    /// @param _validators The new list of validator addresses.
+    /// @param proof The concatenated ECDSA signatures from the current validators approving the new set.
     function updateValidators(
         address[] calldata _validators,
         bytes calldata proof
@@ -53,8 +63,10 @@ contract ECDSAVerifier is IEquitoVerifier {
         }
     }
 
-    /// Verify that a certain hashed message has been signed by a sufficient number of Validators,
-    /// determined by the threshold, without any assumption on the content of the message itself.
+    /// @notice Verifies that a hashed message has been signed by a sufficient number of Validators.
+    /// @param hash The hash of the message to verify.
+    /// @param proof The concatenated ECDSA signatures from the validators.
+    /// @return True if the signatures are verified successfully, otherwise false.
     function verifySignatures(
         bytes32 hash,
         bytes memory proof
@@ -101,7 +113,10 @@ contract ECDSAVerifier is IEquitoVerifier {
         return c >= (validatorsLength * threshold) / 100;
     }
 
-    /// Helper function to check if an address is present in an array.
+    /// @notice Helper function to check if an address is present in an array.
+    /// @param array The array of addresses to search.
+    /// @param value The address to search for.
+    /// @return True if the address is found, otherwise false.
     function contains(
         address[] memory array,
         address value
