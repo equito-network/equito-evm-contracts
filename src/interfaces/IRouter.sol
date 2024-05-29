@@ -4,7 +4,8 @@ pragma solidity ^0.8.23;
 
 import {EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
 
-// Interface for the Router contract, used to interact with cross-chain messaging protocol
+/// @title IRouter
+/// @notice Interface for the Router contract, used to interact with the cross-chain messaging protocol.
 interface IRouter {
     /// @notice Emitted when a message send request is created.
     /// @param sender The sender of the message.
