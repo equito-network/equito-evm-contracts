@@ -153,6 +153,20 @@ contract CrossChainSwapTest is Test {
         swap.setSwapAddress(chainSelectors, swapAddresses);
     }
 
+    /// @dev Tests swapping native token to ERC20 when insufficient value sent
+    function testSwapNativeToERC20InsufficientValueSent() public payable {
+        vm.startPrank(ALICE);
+        vm.deal(ALICE, INITIAL_FEE + 1_000);
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientValueSent.selector));
+        swap.swap{value: 500}(
+            1,
+            abi.encode(address(token0)),
+            abi.encode(BOB),
+            1_000
+        );
+    }
+
     /// @dev Tests swapping native token to ERC20
     function testSwapNativeToERC20() public payable {
         vm.startPrank(OWNER);
@@ -202,7 +216,8 @@ contract CrossChainSwapTest is Test {
         swap.swap{value: INITIAL_FEE + 1_000}(
             1,
             abi.encode(address(token0)),
-            abi.encode(BOB)
+            abi.encode(BOB),
+            1_000
         );
         uint256 aliceBalanceAfter = ALICE.balance;
         
