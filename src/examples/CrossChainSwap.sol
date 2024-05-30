@@ -33,6 +33,8 @@ contract CrossChainSwap is EquitoApp {
     address internal constant NATIVE_TOKEN =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+    uint256 constant FIXED_FEE = 0.1 ether;
+
     /// @notice Mapping to store the prices of supported tokens on different chains.
     /// @dev The first key is the chain selector, and the second key is the token address.
     mapping(uint256 => mapping(bytes => uint256)) public tokenPrice;
@@ -135,7 +137,11 @@ contract CrossChainSwap is EquitoApp {
         bytes calldata recipient,
         address sourceToken,
         uint256 amount
-    ) external {
+    ) external payable {
+        if (FIXED_FEE > msg.value) {
+            revert Errors.InsufficientFee();
+        }
+
         TransferHelper.safeTransferFrom(
             sourceToken,
             msg.sender,
@@ -161,9 +167,16 @@ contract CrossChainSwap is EquitoApp {
         bytes calldata destinationToken,
         bytes calldata recipient
     ) external payable {
+        if (FIXED_FEE > msg.value) {
+            revert Errors.InsufficientFee();
+        }
+
+        // Calculate the amount to swap after deducting the fee
+        uint256 amountToSwap = msg.value - FIXED_FEE;
+
         _swap(
             NATIVE_TOKEN,
-            msg.value,
+            amountToSwap,
             destinationChainSelector,
             destinationToken,
             recipient
@@ -204,7 +217,7 @@ contract CrossChainSwap is EquitoApp {
         });
 
         // Send the message through the router and store the returned message ID
-        messageId = router.sendMessage(
+        messageId = router.sendMessage{value: FIXED_FEE}(
             peers[destinationChainSelector],
             destinationChainSelector,
             abi.encode(tokenAmount)

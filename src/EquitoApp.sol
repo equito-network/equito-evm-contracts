@@ -66,8 +66,8 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
         bytes calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
-    ) external returns (bytes32) {
-        return router.sendMessage(receiver, destinationChainSelector, data);
+    ) external payable returns (bytes32) {
+        return router.sendMessage{value: msg.value}(receiver, destinationChainSelector, data);
     }
 
     /// @notice Receives a cross-chain message from the Router Contract.

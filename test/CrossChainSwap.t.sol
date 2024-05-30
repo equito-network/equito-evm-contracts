@@ -5,9 +5,11 @@ pragma solidity ^0.8.23;
 import {Test, console} from "forge-std/Test.sol";
 import {Router} from "../src/Router.sol";
 import {IRouter} from "../src/interfaces/IRouter.sol";
+import {IEquitoFees} from "../src/interfaces/IEquitoFees.sol";
 import {CrossChainSwap} from "../src/examples/CrossChainSwap.sol";
 import {MockVerifier} from "./mock/MockVerifier.sol";
 import {MockReceiver} from "./mock/MockReceiver.sol";
+import {MockEquitoFees} from "./mock/MockEquitoFees.sol";
 import {EquitoMessage} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockERC20} from "../src/examples/MockERC20.sol";
 import {Errors} from "../src/libraries/Errors.sol";
@@ -19,6 +21,7 @@ contract CrossChainSwapTest is Test {
     CrossChainSwap swap;
     MockVerifier verifier;
     MockReceiver receiver;
+    MockEquitoFees equitoFees;
     MockERC20 token0;
 
     address nativeToken = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -26,12 +29,15 @@ contract CrossChainSwapTest is Test {
     address constant OWNER = address(0x03132);
     address constant ALICE = address(0xA11CE);
     address constant BOB = address(0xB0B);
-
+    
+    uint256 constant INITIAL_FEE = 0.1 ether;
+    
     function setUp() public {
         vm.startPrank(OWNER);
         verifier = new MockVerifier();
+        equitoFees = new MockEquitoFees();
         receiver = new MockReceiver();
-        router = new Router(1, address(verifier));
+        router = new Router(1, address(verifier), address(equitoFees));
         swap = new CrossChainSwap(address(router));
         token0 = new MockERC20("Token0", "TK0", 1_000_000 ether);
 
@@ -148,7 +154,7 @@ contract CrossChainSwapTest is Test {
     }
 
     /// @dev Tests swapping native token to ERC20
-    function testSwapNativeToERC20() public {
+    function testSwapNativeToERC20() public payable {
         vm.startPrank(OWNER);
 
         uint256[] memory chainSelector = new uint256[](2);
@@ -169,7 +175,7 @@ contract CrossChainSwapTest is Test {
         swap.setSwapAddress(chainSelectors, swapAddresses);
 
         vm.startPrank(ALICE);
-        vm.deal(ALICE, 1_000);
+        vm.deal(ALICE, INITIAL_FEE + 1_000);
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
@@ -187,27 +193,33 @@ contract CrossChainSwapTest is Test {
         });
 
         vm.expectEmit(true, true, false, true);
+        emit IEquitoFees.FeePaid(address(swap), INITIAL_FEE);
+
+        vm.expectEmit(true, true, false, true);
         emit IRouter.MessageSendRequested(address(swap), message);
 
         uint256 aliceBalanceBefore = ALICE.balance;
-        swap.swap{value: 1_000}(
+        swap.swap{value: INITIAL_FEE + 1_000}(
             1,
             abi.encode(address(token0)),
             abi.encode(BOB)
         );
         uint256 aliceBalanceAfter = ALICE.balance;
-        assertEq(aliceBalanceBefore - aliceBalanceAfter, 1_000);
+        
+        assertEq(aliceBalanceBefore, INITIAL_FEE + 1_000);
+        assertEq(aliceBalanceAfter, 0);
 
         uint256 bobBalanceBefore = token0.balanceOf(BOB);
         EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
         router.deliverAndExecuteMessages(messages, 0, bytes("0"));
         uint256 bobBalanceAfter = token0.balanceOf(BOB);
-        assertEq(bobBalanceAfter - bobBalanceBefore, 500);
+        assertEq(bobBalanceBefore, 0);
+        assertEq(bobBalanceAfter, 500);
     }
 
     /// @dev Tests swapping ERC20 to native token
-    function testSwapERC20ToNative() public {
+    function testSwapERC20ToNative() public payable {
         vm.startPrank(OWNER);
 
         uint256[] memory chainSelector = new uint256[](2);
@@ -230,6 +242,8 @@ contract CrossChainSwapTest is Test {
         token0.transfer(ALICE, 2_000);
 
         vm.startPrank(ALICE);
+        vm.deal(ALICE, INITIAL_FEE);
+
         token0.approve(address(swap), 1_000);
 
         EquitoMessage memory message = EquitoMessage({
@@ -248,10 +262,13 @@ contract CrossChainSwapTest is Test {
         });
 
         vm.expectEmit(true, true, false, true);
+        emit IEquitoFees.FeePaid(address(swap), INITIAL_FEE);
+        
+        vm.expectEmit(true, true, false, true);
         emit IRouter.MessageSendRequested(address(swap), message);
 
         uint256 aliceBalanceBefore = token0.balanceOf(ALICE);
-        swap.swap(
+        swap.swap{value: INITIAL_FEE}(
             1,
             abi.encode(nativeToken),
             abi.encode(BOB),
@@ -259,13 +276,15 @@ contract CrossChainSwapTest is Test {
             1_000
         );
         uint256 aliceBalanceAfter = token0.balanceOf(ALICE);
-        assertEq(aliceBalanceBefore - aliceBalanceAfter, 1_000);
+        assertEq(aliceBalanceBefore, 2_000);
+        assertEq(aliceBalanceAfter, 1_000);
 
         uint256 bobBalanceBefore = BOB.balance;
         EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
         router.deliverAndExecuteMessages(messages, 0, bytes("0"));
         uint256 bobBalanceAfter = BOB.balance;
-        assertEq(bobBalanceAfter - bobBalanceBefore, 2_000);
+        assertEq(bobBalanceBefore, 0);
+        assertEq(bobBalanceAfter, 2000);
     }
 }

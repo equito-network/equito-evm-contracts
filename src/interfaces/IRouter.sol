@@ -37,7 +37,7 @@ interface IRouter {
         bytes calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
-    ) external returns (bytes32);
+    ) external payable returns (bytes32);
 
     /// @notice Routes messages to the appropriate receiver contracts.
     /// @param messages The list of messages to be routed.

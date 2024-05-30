@@ -7,6 +7,7 @@ import "forge-std/Script.sol";
 
 import {Router} from "../src/Router.sol";
 import {ECDSAVerifier} from "../src/ECDSAVerifier.sol";
+import {IEquitoFees} from "../src/interfaces/IEquitoFees.sol";
 
 /// This script is used to deploy the Router contract using the configuration determined by the env file.
 contract DeployRouter is Script {
@@ -40,7 +41,7 @@ contract DeployRouter is Script {
         console.log("Deployed ECDSAVerifier Verifier successfully =>", address(verifier));
 
         console.log("======== Deploying Router =========");
-        router = new Router(chainSelector, address(verifier));
+        router = new Router(chainSelector, address(verifier), address(verifier));
         console.log("Deployed Router successfully =>", address(router));
 
         console.log("======== Finished deploy process =========");
