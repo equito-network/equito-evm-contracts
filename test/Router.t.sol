@@ -43,7 +43,7 @@ contract RouterTest is Test {
     }
 
     // Test sending a message with no Ether
-    /*function testSendMessageWithNoEther() public {
+    function testSendMessageWithNoEther() public {
         vm.prank(ALICE);
         bytes memory data = abi.encode("Hello, World!");
 
@@ -58,7 +58,7 @@ contract RouterTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientFee.selector));
         bytes32 messageHash = router.sendMessage(abi.encode(receiver), 1, "Test message");
-    }*/
+    }
 
     /// @dev Tests the sendMessage function of the Router contract
     function testSendMessage() public payable {
@@ -74,18 +74,13 @@ contract RouterTest is Test {
             receiver: abi.encode(receiver),
             data: data
         });
-
         
-        //vm.expectEmit(true, true, true, true);
-        //emit FeePaid(address(ALICE), INITIAL_FEE);
+        vm.expectEmit(true, true, true, true);
+        emit FeePaid(ALICE, INITIAL_FEE);
 
         vm.expectEmit(true, true, true, true);
         emit MessageSendRequested(address(ALICE), message);
         bytes32 messageHash = router.sendMessage{value: INITIAL_FEE}(abi.encode(receiver), 2, data);
-        //(bool callSuccess, bytes memory messageHash) = address(router).call{value: 100000000000000000}(
-        //    abi.encodeWithSignature("sendMessage(bytes,uint256,bytes)", abi.encode(receiver), 2, data)
-        //);
-        //require(callSuccess, "Call failed");
         assertEq(EquitoMessageLibrary._hash(message), messageHash);
     }
 
