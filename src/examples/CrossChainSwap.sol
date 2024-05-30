@@ -33,8 +33,6 @@ contract CrossChainSwap is EquitoApp {
     address internal constant NATIVE_TOKEN =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    uint256 constant FIXED_FEE = 0.1 ether;
-
     /// @notice Mapping to store the prices of supported tokens on different chains.
     /// @dev The first key is the chain selector, and the second key is the token address.
     mapping(uint256 => mapping(bytes => uint256)) public tokenPrice;
