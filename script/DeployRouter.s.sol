@@ -8,6 +8,7 @@ import "forge-std/Script.sol";
 import {Router} from "../src/Router.sol";
 import {ECDSAVerifier} from "../src/ECDSAVerifier.sol";
 import {IEquitoFees} from "../src/interfaces/IEquitoFees.sol";
+import {IOracle} from "../src/interfaces/IOracle.sol";
 
 /// This script is used to deploy the Router contract using the configuration determined by the env file.
 contract DeployRouter is Script {
@@ -20,6 +21,7 @@ contract DeployRouter is Script {
 
     ECDSAVerifier public verifier;
     Router public router;
+    IOracle public oracle;
 
     address ALITH = 0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac;
     address BALTATHAR = 0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0;
@@ -37,7 +39,7 @@ contract DeployRouter is Script {
         validators[2] = CHARLETH;
 
         console.log("======== Deploying ECDSAVerifier Verifier =========");
-        verifier = new ECDSAVerifier(validators, 0);
+        verifier = new ECDSAVerifier(validators, 0, address(oracle));
         console.log("Deployed ECDSAVerifier Verifier successfully =>", address(verifier));
 
         console.log("======== Deploying Router =========");
