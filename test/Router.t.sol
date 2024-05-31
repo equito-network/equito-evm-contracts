@@ -7,6 +7,7 @@ import {Router, IRouter} from "../src/Router.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockReceiver} from "./mock/MockReceiver.sol";
 import {MockVerifier} from "./mock/MockVerifier.sol";
+import {MockEquitoFees} from "./mock/MockEquitoFees.sol";
 import {IEquitoVerifier} from "../src/interfaces/IEquitoVerifier.sol";
 import {Errors} from "../src/libraries/Errors.sol";
 
@@ -14,20 +15,25 @@ import {Errors} from "../src/libraries/Errors.sol";
 /// @dev Test suite for the Router contract
 contract RouterTest is Test {
     MockVerifier verifier;
+    MockEquitoFees equitoFees;
     Router router;
     MockReceiver receiver;
 
     address constant ALICE = address(0xA11CE);
     address constant BOB = address(0xB0B);
 
+    uint256 constant INITIAL_FEE = 0.1 ether;
+
     event MessageSendRequested(address indexed sender, EquitoMessage message);
     event VerifierAdded(address indexed verifier);
     event MessagesDelivered(EquitoMessage[] messages);
     event MessagesExecuted(EquitoMessage[] messages);
+    event FeePaid(address indexed payer, uint256 amount);
 
     function setUp() public {
         verifier = new MockVerifier();
-        router = new Router(1, address(verifier));
+        equitoFees = new MockEquitoFees();
+        router = new Router(1, address(verifier), address(equitoFees));
         receiver = new MockReceiver();
     }
 
@@ -36,8 +42,8 @@ contract RouterTest is Test {
         assertEq(router.chainSelector(), 1, "Chain selector not initialized correctly");
     }
 
-    /// @dev Tests the sendMessage function of the Router contract
-    function testSendMessage() public {
+    // Test sending a message with no Ether
+    function testSendMessageWithNoEther() public {
         vm.prank(ALICE);
         bytes memory data = abi.encode("Hello, World!");
 
@@ -50,11 +56,31 @@ contract RouterTest is Test {
             data: data
         });
 
+        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientFee.selector));
+        bytes32 messageHash = router.sendMessage(abi.encode(receiver), 1, "Test message");
+    }
+
+    /// @dev Tests the sendMessage function of the Router contract
+    function testSendMessage() public payable {
+        vm.deal(ALICE, 1 ether);
+        vm.prank(ALICE);
+        bytes memory data = abi.encode("Hello, World!");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 2,
+            receiver: abi.encode(receiver),
+            data: data
+        });
+        
+        vm.expectEmit(true, true, true, true);
+        emit FeePaid(ALICE, INITIAL_FEE);
+
         vm.expectEmit(true, true, true, true);
         emit MessageSendRequested(address(ALICE), message);
-
-        bytes32 messageHash = router.sendMessage(abi.encode(receiver), 2, data);
-
+        bytes32 messageHash = router.sendMessage{value: INITIAL_FEE}(abi.encode(receiver), 2, data);
         assertEq(EquitoMessageLibrary._hash(message), messageHash);
     }
 

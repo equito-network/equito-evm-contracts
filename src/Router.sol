@@ -5,6 +5,7 @@ pragma solidity ^0.8.23;
 import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
+import {IEquitoFees} from "./interfaces/IEquitoFees.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
 import {Errors} from "./libraries/Errors.sol";
 
@@ -27,15 +28,22 @@ contract Router is IRouter {
     /// @notice Stores the message hashes that have been delivered and are awaiting execution.
     mapping(bytes32 => bool) public storedMessages;
 
-    /// @notice Initializes the Router contract with a chain selector and an initial verifier.
+    /// @notice The EquitoFees contract used to handle fee-related operations.
+    /// @dev This contract reference is used to interact with the fee management system.
+    IEquitoFees public equitoFees;
+
+    /// @notice Initializes the Router contract with a chain selector, an initial verifier and the address of the EquitoFees contract..
     /// @param _chainSelector The chain selector of the chain where the Router contract is deployed.
+    /// @notice Initializes the contract with the address of the EquitoFees contract.
     /// @param _initialVerifier The address of the initial verifier contract.
-    constructor(uint256 _chainSelector, address _initialVerifier) {
+    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees) {
         if (_initialVerifier == address(0)) {
             revert Errors.InitialVerifierZeroAddress();
         }
         chainSelector = _chainSelector;
         verifiers.push(IEquitoVerifier(_initialVerifier));
+
+        equitoFees = IEquitoFees(_equitoFees);
     }
 
     /// @notice Sends a cross-chain message using Equito.
@@ -47,7 +55,9 @@ contract Router is IRouter {
         bytes calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
-    ) external returns (bytes32) {
+    ) external payable returns (bytes32) {
+        equitoFees.payFee{value: msg.value}(msg.sender);
+
         EquitoMessage memory newMessage = EquitoMessage({
             blockNumber: block.number,
             sourceChainSelector: chainSelector,

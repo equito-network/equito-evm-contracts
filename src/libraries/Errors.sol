@@ -42,4 +42,10 @@ library Errors {
 
     /// @notice Thrown when the network is unsupported.
     error UnsupportedNetwork();
+
+    /// @notice Thrown when the provided fee is insufficient to cover the required cost.
+    error InsufficientFee();
+
+    /// @notice Thrown when the amount of ether sent with the transaction is insufficient.
+    error InsufficientValueSent();
 }

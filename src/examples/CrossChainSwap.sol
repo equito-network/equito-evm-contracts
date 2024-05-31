@@ -135,7 +135,7 @@ contract CrossChainSwap is EquitoApp {
         bytes calldata recipient,
         address sourceToken,
         uint256 amount
-    ) external {
+    ) external payable {
         TransferHelper.safeTransferFrom(
             sourceToken,
             msg.sender,
@@ -146,6 +146,7 @@ contract CrossChainSwap is EquitoApp {
         _swap(
             sourceToken,
             amount,
+            msg.value,
             destinationChainSelector,
             destinationToken,
             recipient
@@ -156,14 +157,23 @@ contract CrossChainSwap is EquitoApp {
     /// @param destinationChainSelector The identifier of the destination chain.
     /// @param destinationToken The address of the destination token.
     /// @param recipient The address of the recipient on the destination chain.
+    /// @param amount The amount of native tokens to swap.
     function swap(
         uint256 destinationChainSelector,
         bytes calldata destinationToken,
-        bytes calldata recipient
+        bytes calldata recipient,
+        uint256 amount
     ) external payable {
+        if (amount > msg.value) {
+            revert Errors.InsufficientValueSent();
+        }
+
+        uint256 fee = msg.value - amount;
+
         _swap(
             NATIVE_TOKEN,
-            msg.value,
+            amount,
+            fee,
             destinationChainSelector,
             destinationToken,
             recipient
@@ -175,6 +185,7 @@ contract CrossChainSwap is EquitoApp {
     /// It assumes that the correct amount of sourceToken has already been received by the contract.
     /// @param sourceToken The address of the source token.
     /// @param sourceAmount The amount of source tokens.
+    /// @param fee The amount of the fee to be paid.
     /// @param destinationChainSelector The identifier of the destination chain.
     /// @param destinationToken The address of the destination token.
     /// @param recipient The address of the recipient on the destination chain.
@@ -182,6 +193,7 @@ contract CrossChainSwap is EquitoApp {
     function _swap(
         address sourceToken,
         uint256 sourceAmount,
+        uint256 fee,
         uint256 destinationChainSelector,
         bytes calldata destinationToken,
         bytes calldata recipient
@@ -204,7 +216,7 @@ contract CrossChainSwap is EquitoApp {
         });
 
         // Send the message through the router and store the returned message ID
-        messageId = router.sendMessage(
+        messageId = router.sendMessage{value: fee}(
             peers[destinationChainSelector],
             destinationChainSelector,
             abi.encode(tokenAmount)

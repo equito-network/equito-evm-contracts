@@ -3,6 +3,7 @@
 pragma solidity ^0.8.23;
 
 import {IRouter} from "../../src/Router.sol";
+import {IEquitoFees} from "../../src/interfaces/IEquitoFees.sol";
 import {EquitoMessage} from "../../src/libraries/EquitoMessageLibrary.sol";
 import {IEquitoVerifier} from "../../src/interfaces/IEquitoVerifier.sol";
 
@@ -13,11 +14,13 @@ contract MockRouter is IRouter {
 
     mapping(bytes32 => bool) public isDuplicateMessage;
 
+    IEquitoFees public equitoFees;
+
     function sendMessage(
         bytes calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
-    ) external override returns (bytes32) {
+    ) external override payable returns (bytes32) {
         return keccak256(
                 abi.encode(
                     receiver,
