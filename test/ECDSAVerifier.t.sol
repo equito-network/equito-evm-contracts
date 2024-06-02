@@ -5,10 +5,11 @@ import {Test, console} from "forge-std/Test.sol";
 import {ECDSAVerifier} from "../src/ECDSAVerifier.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockOracle} from "./mock/MockOracle.sol";
+import {MockECDSAVerifier} from "./mock/MockECDSAVerifier.sol";
 import {Errors} from "../src/libraries/Errors.sol";
 
 contract ECDSAVerifierTest is Test {
-    ECDSAVerifier verifier;
+    MockECDSAVerifier verifier;
     MockOracle oracle;
 
     address constant OWNER = address(0x03132);
@@ -16,7 +17,7 @@ contract ECDSAVerifierTest is Test {
     address constant BOB = address(0xB0B);
 
     event FeePaid(address indexed payer, uint256 amount);
-    event CostMessageUsdSet(uint256 newCostMessageUsd);
+    event MessageCostUsdSet(uint256 newMessageCostUsd);
     event LiquidityProviderSet(address indexed newLiquidityProvider);
 
     function setUp() public {
@@ -31,8 +32,8 @@ contract ECDSAVerifierTest is Test {
 
         vm.startPrank(OWNER);
         oracle = new MockOracle();
-        verifier = new ECDSAVerifier(validators, 0, address(oracle));
-        verifier.setCostMessageUsd(1000);
+        verifier = new MockECDSAVerifier(validators, 0, address(oracle));
+        verifier.setMessageCostUsd(1000);
         vm.stopPrank();
     }
 
@@ -160,29 +161,29 @@ contract ECDSAVerifierTest is Test {
 
         uint256 fee = verifier.getFee();
         uint256 insufficientFee = 1;
-        uint256 costMessageUsd = verifier.costMessageUsd();
+        uint256 messageCostUsd = verifier.messageCostUsd();
 
         vm.expectRevert(Errors.InsufficientFee.selector);
         verifier.payFee{value: insufficientFee}(ALICE);
     }
 
     /// @notice Tests setting the cost of a message in USD.
-    function testSetCostMessageUsd() public {
+    function testSetMessageCostUsd() public {
         vm.prank(OWNER);
 
         vm.expectEmit(true, true, true, true);
-        emit CostMessageUsdSet(100);
-        verifier.setCostMessageUsd(100);
+        emit MessageCostUsdSet(100);
+        verifier.setMessageCostUsd(100);
 
-        assertEq(verifier.costMessageUsd(), 100, "Cost message USD not set correctly");
+        assertEq(verifier.messageCostUsd(), 100, "Message cost USD not set correctly");
     }
 
     /// @notice Tests setting the cost of a message in USD with a value of zero.
-    function testSetCostMessageUsdCostMustBeGreaterThanZero() public {
+    function testSetMessageCostUsdCostMustBeGreaterThanZero() public {
         vm.prank(OWNER);
         
         vm.expectRevert(Errors.CostMustBeGreaterThanZero.selector);
-        verifier.setCostMessageUsd(0);
+        verifier.setMessageCostUsd(0);
     }
 
     /// @notice Tests setting the liquidity provider address.

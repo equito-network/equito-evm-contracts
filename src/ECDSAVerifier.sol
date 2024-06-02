@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 import {IEquitoFees} from "./interfaces/IEquitoFees.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
@@ -12,7 +11,7 @@ import {Errors} from "./libraries/Errors.sol";
 /// @notice This contract is part of the Equito Protocol and verifies that a set of `EquitoMessage` instances
 ///         have been signed by a sufficient number of Validators, as determined by the threshold.
 /// @dev Uses ECDSA for signature verification, adhering to the Ethereum standard.
-contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
+contract ECDSAVerifier is IEquitoVerifier, IEquitoFees {
     /// @notice The list of validator addresses.
     address[] public validators;
     /// @notice The threshold percentage of validator signatures required for verification.
@@ -21,7 +20,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
     uint256 public session;
     /// @notice The cost of sending a message in USD.
     /// @dev The cost, denominated in USD, required to send a message. This value can be used to calculate fees for message.
-    uint256 public costMessageUsd;
+    uint256 public messageCostUsd;
     /// @notice The address of the liquidity provider.
     /// @dev The address of the current liquidity provider, responsible for facilitating liquidity in the system. This address can be updated if needed.
     address public liquidityProvider; 
@@ -34,7 +33,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
     event ValidatorSetUpdated();
 
     /// @notice Event emitted when the cost of sending a message in USD is set.
-    event CostMessageUsdSet(uint256 newCostMessageUsd);
+    event MessageCostUsdSet(uint256 newMessageCostUsd);
 
     /// @notice Event emitted when the liquidity provider is set.
     event LiquidityProviderSet(address indexed newLiquidityProvider);
@@ -43,7 +42,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
     /// @param _validators The initial list of validator addresses.
     /// @param _session The initial session identifier.
     /// @param _oracle The address of the Oracle contract used to retrieve token prices.
-    constructor(address[] memory _validators, uint256 _session, address _oracle) Ownable(msg.sender) {
+    constructor(address[] memory _validators, uint256 _session, address _oracle) {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
@@ -169,7 +168,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
         emit FeePaid(payer, msg.value);
     }
 
-    /// @notice Calculates the fee amount required to send a message based on the current costMessageUsd and tokenPriceUsd from the Oracle.
+    /// @notice Calculates the fee amount required to send a message based on the current messageCostUsd and tokenPriceUsd from the Oracle.
     /// @return The fee amount in wei.
     function _getFee() internal view returns (uint256) {
         uint256 tokenPriceUsd = oracle.getTokenPriceUsd();
@@ -177,23 +176,23 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
             revert Errors.InvalidTokenPriceFromOracle();
         }
 
-        return costMessageUsd / tokenPriceUsd;
+        return messageCostUsd / tokenPriceUsd;
     }
 
     /// @notice Sets the cost of sending a message in USD.
-    /// @param _costMessageUsd The new cost of sending a message in USD.
-    function setCostMessageUsd(uint256 _costMessageUsd) external onlyOwner {
-        if (_costMessageUsd == 0) {
+    /// @param _messageCostUsd The new cost of sending a message in USD.
+    function _setMessageCostUsd(uint256 _messageCostUsd) internal {
+        if (_messageCostUsd == 0) {
             revert Errors.CostMustBeGreaterThanZero();
         }
 
-        costMessageUsd = _costMessageUsd;
-        emit CostMessageUsdSet(_costMessageUsd);
+        messageCostUsd = _messageCostUsd;
+        emit MessageCostUsdSet(_messageCostUsd);
     }
 
     /// @notice Sets the liquidity provider address.
     /// @param _liquidityProvider The address of the new liquidity provider.
-    function setLiquidityProvider(address _liquidityProvider) external onlyOwner {
+    function _setLiquidityProvider(address _liquidityProvider) internal {
         if (_liquidityProvider == address(0)) {
             revert Errors.InvalidAddress();
         }
