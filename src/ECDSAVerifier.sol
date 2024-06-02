@@ -264,7 +264,4 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Ownable
         uint256 requiredAmount = 1 ether;
         return liquidityProviderBalances[provider] >= requiredAmount;
     }
-
-    /// @notice Allows the contract to receive Ether.
-    receive() external payable {}
 }
