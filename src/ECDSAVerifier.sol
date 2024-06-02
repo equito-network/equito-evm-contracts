@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
+import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {IEquitoFees} from "./interfaces/IEquitoFees.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
@@ -12,7 +13,7 @@ import {Errors} from "./libraries/Errors.sol";
 /// @notice This contract is part of the Equito Protocol and verifies that a set of `EquitoMessage` instances
 ///         have been signed by a sufficient number of Validators, as determined by the threshold.
 /// @dev Uses ECDSA for signature verification, adhering to the Ethereum standard.
-contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
+contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Ownable {
     /// @notice The list of validator addresses.
     address[] public validators;
     /// @notice The threshold percentage of validator signatures required for verification.
@@ -25,6 +26,12 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
     /// @notice The address of the liquidity provider.
     /// @dev The address of the current liquidity provider, responsible for facilitating liquidity in the system. This address can be updated if needed.
     address public liquidityProvider; 
+    /// @notice The sovereign account address of the Equito Substrate chain.
+    address public sovereignAccount;
+    /// @notice The chain ID of the Equito Substrate chain.
+    uint256 public sovereignChainId;
+
+    mapping(address => uint256) public liquidityProviderBalances;
 
     /// @notice The Oracle contract used to retrieve token prices.
     /// @dev This contract provides token price information required for fee calculation.
@@ -39,6 +46,9 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
     /// @notice Event emitted when the liquidity provider is set.
     event LiquidityProviderSet(address indexed newLiquidityProvider);
 
+    /// @notice Event emitted when fees are transferred to the liquidity provider.
+    event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
+
     /// @notice Initializes the contract with the initial validator set and session identifier.
     /// @param _validators The initial list of validator addresses.
     /// @param _session The initial session identifier.
@@ -47,6 +57,11 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
+    }
+
+    modifier onlySovereign(EquitoMessage calldata message) {
+        if (message.sourceChainSelector != sovereignChainId && msg.sender != sovereignAccount) revert Errors.InvalidSovereign(sovereignChainId, sovereignAccount);
+        _;
     }
 
     /// @notice Verifies that a set of `EquitoMessage` instances have been signed by a sufficient number of Validators.
@@ -201,4 +216,55 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees, Ownable {
         liquidityProvider = _liquidityProvider;
         emit LiquidityProviderSet(_liquidityProvider);
     }
+
+    /// @notice Receives a cross-chain message from the Router contract.
+    /// @param message The Equito message received.
+    function receiveMessage(EquitoMessage calldata message) external override onlySovereign(message) {
+        // Decode and handle the message based on the first byte
+        bytes1 operation = message.data[0];
+        if (operation == 0x01) {
+            // Update the validator set
+            address[] memory newValidators;
+            bytes memory proof;
+            (newValidators, proof) = abi.decode(message.data[1:], (address[], bytes));
+            updateValidators(newValidators, proof);
+        } else if (operation == 0x02) {
+            // Update the message cost
+            uint256 newCostMessageUsd;
+            (newCostMessageUsd) = abi.decode(message.data[1:], (uint256));
+            setCostMessageUsd(newCostMessageUsd);
+        } else if (operation == 0x03) {
+            // Update the liquidity provider
+            address newNewLiquidityProvider;
+            (newNewLiquidityProvider) = abi.decode(message.data[1:], (address));
+            setLiquidityProvider(newNewLiquidityProvider);
+        } else if (operation == 0x04) {
+            // Transfer fees to the liquidity provider
+            uint256 amount;
+            (amount) = abi.decode(message.data[1:], (uint256));
+
+            // Confirms that a certain liquidity provider did its job on Equito
+            require(verifyLiquidityProviderFulfillment(liquidityProvider), "Liquidity provider has not fulfilled");
+            
+            transferFees(amount);
+        } else {
+            revert Errors.InvalidOperation();
+        }
+    }
+
+    /// @notice Transfers fees to the liquidity provider.
+    /// @param amount The amount of fees to transfer.
+    function transferFees(uint256 amount) internal {
+        // Transfer the specified amount of Ether to the liquidity provider
+        payable(liquidityProvider).transfer(amount);
+        emit FeesTransferred(liquidityProvider, session, amount);
+    }
+
+    function verifyLiquidityProviderFulfillment(address provider) internal view returns (bool) {
+        uint256 requiredAmount = 1 ether;
+        return liquidityProviderBalances[provider] >= requiredAmount;
+    }
+
+    /// @notice Allows the contract to receive Ether.
+    receive() external payable {}
 }

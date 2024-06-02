@@ -57,4 +57,12 @@ library Errors {
 
     /// @notice Thrown when the token price retrieved from the oracle is invalid or zero.
     error InvalidTokenPriceFromOracle();
+
+    /// @notice Thrown when a message is received from an invalid sovereign account.
+    /// @param chainId The chain ID of the supposed sovereign account.
+    /// @param sovereign The address of the supposed sovereign account.
+    error InvalidSovereign(uint256 chainId, address sovereign);
+
+    /// @notice Thrown when an invalid operation code is encountered in the received message.
+    error InvalidOperation();
 }
