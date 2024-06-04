@@ -2,29 +2,47 @@
 pragma solidity ^0.8.23;
 
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
+import {IEquitoFees} from "./interfaces/IEquitoFees.sol";
+import {IOracle} from "./interfaces/IOracle.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
+import {Errors} from "./libraries/Errors.sol";
 
 /// @title ECDSAVerifier
 /// @notice This contract is part of the Equito Protocol and verifies that a set of `EquitoMessage` instances
 ///         have been signed by a sufficient number of Validators, as determined by the threshold.
 /// @dev Uses ECDSA for signature verification, adhering to the Ethereum standard.
-contract ECDSAVerifier is IEquitoVerifier {
+contract ECDSAVerifier is IEquitoVerifier, IEquitoFees {
     /// @notice The list of validator addresses.
     address[] public validators;
     /// @notice The threshold percentage of validator signatures required for verification.
     uint256 public immutable threshold = 70;
     /// @notice The current session identifier for the validator set.
     uint256 public session;
+    /// @notice The cost of sending a message in USD.
+    /// @dev The cost, denominated in USD, required to send a message. This value can be used to calculate fees for message.
+    uint256 public messageCostUsd;
+    
+    /// @notice Stores the session ID and accumulated fees amount.
+    mapping(uint256 => uint256) public fees;
+
+    /// @notice The Oracle contract used to retrieve token prices.
+    /// @dev This contract provides token price information required for fee calculation.
+    IOracle public oracle;
 
     /// @notice Emitted when the validator set is updated.
     event ValidatorSetUpdated();
 
+    /// @notice Event emitted when the cost of sending a message in USD is set.
+    event MessageCostUsdSet(uint256 newMessageCostUsd);
+
     /// @notice Initializes the contract with the initial validator set and session identifier.
     /// @param _validators The initial list of validator addresses.
     /// @param _session The initial session identifier.
-    constructor(address[] memory _validators, uint256 _session) {
+    /// @param _oracle The address of the Oracle contract used to retrieve token prices.
+    constructor(address[] memory _validators, uint256 _session, address _oracle) {
         validators = _validators;
         session = _session;
+        oracle = IOracle(_oracle);
     }
 
     /// @notice Verifies that a set of `EquitoMessage` instances have been signed by a sufficient number of Validators.
@@ -127,5 +145,47 @@ contract ECDSAVerifier is IEquitoVerifier {
             }
         }
         return false;
+    }
+
+    /// @notice Retrieves the fee amount required to send a message.
+    /// @return The fee amount in wei.
+    function getFee() external view returns (uint256) {
+        return _getFee();
+    }
+
+    /// @notice Allows a payer to pay the fee for sending a message.
+    /// @param payer The address of the payer who is paying the fee.
+    function payFee(address payer) external payable {
+        uint256 fee = _getFee();
+
+        if (fee > msg.value) {
+            revert Errors.InsufficientFee();
+        }
+
+        fees[session] += msg.value;
+
+        emit FeePaid(payer, msg.value);
+    }
+
+    /// @notice Calculates the fee amount required to send a message based on the current messageCostUsd and tokenPriceUsd from the Oracle.
+    /// @return The fee amount in wei.
+    function _getFee() internal view returns (uint256) {
+        uint256 tokenPriceUsd = oracle.getTokenPriceUsd();
+        if (tokenPriceUsd == 0) {
+            revert Errors.InvalidTokenPriceFromOracle();
+        }
+
+        return messageCostUsd / tokenPriceUsd;
+    }
+
+    /// @notice Sets the cost of sending a message in USD.
+    /// @param _messageCostUsd The new cost of sending a message in USD.
+    function _setMessageCostUsd(uint256 _messageCostUsd) internal {
+        if (_messageCostUsd == 0) {
+            revert Errors.CostMustBeGreaterThanZero();
+        }
+
+        messageCostUsd = _messageCostUsd;
+        emit MessageCostUsdSet(_messageCostUsd);
     }
 }

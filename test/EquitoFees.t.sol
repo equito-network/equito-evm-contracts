@@ -37,7 +37,7 @@ contract EquitoFeesTest is Test {
 
     /// @notice Test paying the fee with sufficient amount.
     function testPayFeeSuccess() public {
-        vm.deal(ALICE, 1 ether); // Fund ALICE with 1 ether
+        vm.deal(ALICE, 1 ether);
         vm.prank(ALICE);
 
         vm.expectEmit(true, true, true, true);
@@ -47,7 +47,7 @@ contract EquitoFeesTest is Test {
 
     /// @notice Test paying the fee with insufficient amount.
     function testPayFeeInsufficient() public {
-        vm.deal(ALICE, 1 ether); // Fund ALICE with 0.05 ether
+        vm.deal(ALICE, 1 ether);
         vm.prank(ALICE);
 
         vm.expectRevert(Errors.InsufficientFee.selector);

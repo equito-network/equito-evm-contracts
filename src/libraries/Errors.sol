@@ -48,4 +48,13 @@ library Errors {
 
     /// @notice Thrown when the amount of ether sent with the transaction is insufficient.
     error InsufficientValueSent();
+
+    /// @notice Thrown when an invalid address is provided, such as the zero address.
+    error InvalidAddress();
+
+    /// @notice Thrown when the provided cost is not greater than zero.
+    error CostMustBeGreaterThanZero();
+
+    /// @notice Thrown when the token price retrieved from the oracle is invalid or zero.
+    error InvalidTokenPriceFromOracle();
 }
