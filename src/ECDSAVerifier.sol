@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {IEquitoFees} from "./interfaces/IEquitoFees.sol";
@@ -12,7 +13,7 @@ import {Errors} from "./libraries/Errors.sol";
 /// @notice This contract is part of the Equito Protocol and verifies that a set of `EquitoMessage` instances
 ///         have been signed by a sufficient number of Validators, as determined by the threshold.
 /// @dev Uses ECDSA for signature verification, adhering to the Ethereum standard.
-contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
+contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, ReentrancyGuard {
     /// @notice The list of validator addresses.
     address[] public validators;
     /// @notice The threshold percentage of validator signatures required for verification.
@@ -86,9 +87,11 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         bytes calldata proof
     ) external {
         bytes32 hashed = keccak256(abi.encode(session, _validators));
+
         if (this.verifySignatures(hashed, proof)) {
             validators = _validators;
             session += 1;
+
             emit ValidatorSetUpdated();
         }
     }
@@ -159,29 +162,52 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         return false;
     }
 
+    /// @notice Retrieves the fee amount required to send a message.
+    /// @return The fee amount in wei.
+    function getFee() external view returns (uint256) {
+        return _getFee();
+    }
+
+    /// @notice Allows a payer to pay the fee for sending a message.
+    /// @param payer The address of the payer who is paying the fee.
+    function payFee(address payer) external payable {
+        uint256 fee = _getFee();
+
+        if (fee > msg.value) {
+            revert Errors.InsufficientFee();
+        }
+
+        fees[session] += msg.value;
+
+        emit FeePaid(payer, msg.value);
+    }
+
+
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
     function receiveMessage(EquitoMessage calldata message) external override onlySovereign(message) {
-        // Decode and handle the message based on the first byte
-        bytes1 operation = message.data[0];
+        bytes1 operation = message.data[31];
+
         if (operation == 0x01) {
             // Update the validator set
             address[] memory newValidators;
             bytes memory proof;
-            (newValidators, proof) = abi.decode(message.data[1:], (address[], bytes));
-            updateValidators(newValidators, proof);
+            (, newValidators, proof) = abi.decode(message.data, (bytes32, address[], bytes));
+
+            this.updateValidators(newValidators, proof);
         } else if (operation == 0x02) {
             // Update the message cost
             uint256 newMessageCostUsd;
-            (newMessageCostUsd) = abi.decode(message.data[1:], (uint256));
+            (, newMessageCostUsd) = abi.decode(message.data, (bytes32, uint256));
+
             _setMessageCostUsd(newMessageCostUsd);
         } else if (operation == 0x03) {
             // Transfer fees to the liquidity provider
             address liquidityProvider;
             uint256 amount;
-            (liquidityProvider, amount) = abi.decode(message.data[1:], (address, uint256));
+            (, liquidityProvider, amount) = abi.decode(message.data, (bytes32, address, uint256));
             
-            transferFees(liquidityProvider, amount);
+            _transferFees(liquidityProvider, amount);
         } else {
             revert Errors.InvalidOperation();
         }
@@ -190,9 +216,21 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Transfers fees to the liquidity provider.
     /// @param liquidityProvider The address of the liquidity provider.
     /// @param amount The amount of fees to transfer.
-    function transferFees(address liquidityProvider, uint256 amount) internal {
-        payable(liquidityProvider).transfer(amount);
-        emit FeesTransferred(liquidityProvider, session, amount);
+    function _transferFees(address liquidityProvider, uint256 amount) internal {
+        if (liquidityProvider == address(0)) {
+            revert Errors.InvalidLiquidityProvider();
+        }
+
+        uint256 sessionFees = fees[session];
+        uint256 transferAmount = (amount > sessionFees) ? sessionFees : amount;
+
+        fees[session] -= transferAmount;
+
+        (bool success, ) = payable(liquidityProvider).call{value: transferAmount}("");
+        if (!success) revert Errors.TransferFailed();
+        
+        emit FeesTransferred(liquidityProvider, session, transferAmount);
+    
     }
 
     /// @notice Calculates the fee amount required to send a message based on the current messageCostUsd and tokenPriceUsd from the Oracle.

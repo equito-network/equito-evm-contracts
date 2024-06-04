@@ -11,6 +11,10 @@ import {Errors} from "../../src/libraries/Errors.sol";
 contract MockECDSAVerifier is ECDSAVerifier {
     constructor(address[] memory _validators, uint256 _session, address _oracle) ECDSAVerifier(_validators, _session, _oracle) {}
 
+    function transferFees(address liquidityProvider, uint256 amount) external { 
+        _transferFees(liquidityProvider, amount);
+    }
+
     function setMessageCostUsd(uint256 _messageCostUsd) external {
         _setMessageCostUsd(_messageCostUsd);
     }

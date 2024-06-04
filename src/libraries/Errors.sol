@@ -65,4 +65,10 @@ library Errors {
 
     /// @notice Thrown when an invalid operation code is encountered in the received message.
     error InvalidOperation();
+
+    /// @notice Thrown when an invalid liquidity provider address is provided.
+    error InvalidLiquidityProvider();
+
+    /// @notice Thrown when a transfer of fees to the liquidity provider fails.
+    error TransferFailed();
 }

@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {ECDSAVerifier} from "../src/ECDSAVerifier.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockOracle} from "./mock/MockOracle.sol";
+import {MockInvalidReceiver} from "./mock/MockInvalidReceiver.sol";
 import {MockECDSAVerifier} from "./mock/MockECDSAVerifier.sol";
 import {Errors} from "../src/libraries/Errors.sol";
 
@@ -19,6 +20,8 @@ contract ECDSAVerifierTest is Test {
     event FeePaid(address indexed payer, uint256 amount);
     event MessageCostUsdSet(uint256 newMessageCostUsd);
     event LiquidityProviderSet(address indexed newLiquidityProvider);
+    event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
+    event ValidatorSetUpdated();
 
     function setUp() public {
         (address alith, ) = makeAddrAndKey("alith");
@@ -188,5 +191,204 @@ contract ECDSAVerifierTest is Test {
         
         vm.expectRevert(Errors.CostMustBeGreaterThanZero.selector);
         verifier.setMessageCostUsd(0);
+    }
+
+    /// @notice Tests the transfer fees.
+    function testTransferFees() public {
+        uint256 initialAmount = 1 ether;
+
+        vm.deal(ALICE, initialAmount);
+        vm.startPrank(ALICE);
+        verifier.payFee{value: initialAmount}(ALICE);
+        vm.stopPrank();
+
+        assertEq(address(verifier).balance, initialAmount, "Verifier balance mismatch after fee payment");
+
+        uint256 session = verifier.session();
+        uint256 transferAmount = 0.5 ether;
+        address liquidityProvider = BOB;
+
+        assertEq(liquidityProvider.balance, 0, "Initial liquidity provider balance should be 0");
+
+        vm.expectEmit(true, true, true, true);
+        emit FeesTransferred(liquidityProvider, session, transferAmount);
+
+        vm.prank(address(this));
+        verifier.transferFees(liquidityProvider, transferAmount);
+
+        assertEq(address(verifier).balance, initialAmount - transferAmount, "Verifier balance mismatch after transfer");
+        assertEq(liquidityProvider.balance, transferAmount, "Liquidity provider balance mismatch after transfer");
+    }
+
+    /// @notice Tests the transfer fees with an invalid liquidity provider.
+    function testTransferFeesInvalidLiquidityProvider() public {
+        uint256 initialAmount = 1 ether;
+
+        vm.deal(ALICE, initialAmount);
+        vm.startPrank(ALICE);
+        verifier.payFee{value: initialAmount}(ALICE);
+        vm.stopPrank();
+
+        assertEq(address(verifier).balance, initialAmount, "Verifier balance mismatch after fee payment");
+
+        uint256 transferAmount = 0.5 ether;
+
+        vm.expectRevert(Errors.InvalidLiquidityProvider.selector);
+        verifier.transferFees(address(0), transferAmount);
+    }
+
+    /// @notice Tests the transfer fees when the amount exceeds available fees.
+    function testTransferFeesAmountExceedsFees() public {
+        uint256 initialAmount = 1 ether;
+
+        // Set up initial state
+        vm.deal(ALICE, initialAmount);
+        vm.startPrank(ALICE);
+        verifier.payFee{value: initialAmount}(ALICE);
+        vm.stopPrank();
+
+        assertEq(address(verifier).balance, initialAmount, "Verifier balance mismatch after fee payment");
+
+        uint256 session = verifier.session();
+        uint256 transferAmount = 1.5 ether;
+        address liquidityProvider = BOB;
+
+        assertEq(liquidityProvider.balance, 0, "Initial liquidity provider balance should be 0");
+
+        vm.expectEmit(true, true, true, true);
+        emit FeesTransferred(liquidityProvider, session, initialAmount);
+
+        vm.prank(address(verifier));
+        verifier.transferFees(liquidityProvider, transferAmount);
+
+        assertEq(address(verifier).balance, 0, "Verifier balance mismatch after transfer");
+        assertEq(liquidityProvider.balance, initialAmount, "Liquidity provider balance mismatch after transfer");
+    }
+
+    /// @notice Tests the transfer fees when the transfer fails.
+    function testTransferFeesTransferFailed() public {
+        uint256 initialAmount = 1 ether;
+
+        vm.deal(ALICE, initialAmount);
+        vm.startPrank(ALICE);
+        verifier.payFee{value: initialAmount}(ALICE);
+        vm.stopPrank();
+
+        assertEq(address(verifier).balance, initialAmount, "Verifier balance mismatch after fee payment");
+
+        uint256 transferAmount = 0.5 ether;
+        address payable invalidLiquidityProvider = payable(address(new MockInvalidReceiver()));
+
+        vm.expectRevert(Errors.TransferFailed.selector);
+        verifier.transferFees(invalidLiquidityProvider, transferAmount);
+    }
+
+    /// @notice Tests the receive message with update validators command.
+    function testReceiveMessageUpdateValidators() external {
+        (, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (address charleth, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        uint256 session = verifier.session();
+
+        address[] memory validators = new address[](1);
+        validators[0] = charleth;
+        bytes32 messageHash = keccak256(abi.encode(session, validators));
+
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
+        );
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(0x01, validators, proof)
+        });
+
+        vm.expectEmit(true, true, true, true);
+        emit ValidatorSetUpdated();
+        verifier.receiveMessage(message);
+        
+        assert(verifier.validators(0) == charleth);
+        assertEq(verifier.session(), session + 1);
+    }
+
+    /// @notice Tests the receive message with set message cost usd command.
+    function testReceiveMessageSetMessageCostUsd() external {
+        vm.prank(OWNER);
+
+        vm.expectEmit(true, true, true, true);
+        emit MessageCostUsdSet(100);
+        verifier.setMessageCostUsd(100);
+        
+        assertEq(verifier.messageCostUsd(), 100, "Message cost USD not set correctly");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(0x02, 0.5 ether)
+        });
+
+        vm.expectEmit(true, true, true, true);
+        emit MessageCostUsdSet(0.5 ether);
+        verifier.receiveMessage(message);
+        
+        assertEq(verifier.messageCostUsd(), 0.5 ether, "Message cost USD not set correctly");
+    }
+
+    /// @notice Tests the receive message with transfer fees command.
+    function testReceiveMessageTransferFees() external {
+        uint256 initialAmount = 1 ether;
+        uint256 transferAmount = 0.5 ether;
+        address liquidityProvider = BOB;
+        uint256 session = verifier.session();
+
+        vm.deal(ALICE, initialAmount);
+        vm.startPrank(ALICE);
+        verifier.payFee{value: initialAmount}(ALICE);
+        vm.stopPrank();
+
+        assertEq(address(verifier).balance, initialAmount, "Verifier balance mismatch after fee payment");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(address(verifier)),
+            destinationChainSelector: 0,
+            receiver: abi.encode(liquidityProvider),
+            data: abi.encode(0x03, liquidityProvider, transferAmount)
+        });
+
+        vm.prank(address(verifier));
+        vm.expectEmit(true, true, true, true);
+        emit FeesTransferred(liquidityProvider, session, transferAmount);
+        verifier.receiveMessage(message);
+        
+        assertEq(address(verifier).balance, initialAmount - transferAmount, "Verifier balance mismatch after transfer");
+        assertEq(liquidityProvider.balance, transferAmount, "Liquidity provider balance mismatch after transfer");
+    }
+
+    /// @notice Tests the receive message with invalid command.
+    function testReceiveMessageInvalidOperation() external {
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(0x05)
+        });
+
+        vm.prank(address(verifier));
+        vm.expectRevert(Errors.InvalidOperation.selector);
+        verifier.receiveMessage(message);
     }
 }
