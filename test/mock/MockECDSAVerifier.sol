@@ -14,8 +14,4 @@ contract MockECDSAVerifier is ECDSAVerifier {
     function setMessageCostUsd(uint256 _messageCostUsd) external {
         _setMessageCostUsd(_messageCostUsd);
     }
-
-    function setLiquidityProvider(address _liquidityProvider) external {
-        _setLiquidityProvider(_liquidityProvider);
-    }
 }

@@ -149,9 +149,13 @@ contract ECDSAVerifierTest is Test {
 
         uint256 fee = verifier.getFee();
 
+        assertEq(verifier.fees(verifier.session()), 0, "Incorrect fee amount for session");
+
         vm.expectEmit(true, true, true, true);
         emit FeePaid(ALICE, fee);
         verifier.payFee{value: fee}(ALICE);
+
+        assertEq(verifier.fees(verifier.session()), fee, "Incorrect fee amount for session");
     }
 
     /// @notice Test paying the fee with insufficient amount.
@@ -184,24 +188,5 @@ contract ECDSAVerifierTest is Test {
         
         vm.expectRevert(Errors.CostMustBeGreaterThanZero.selector);
         verifier.setMessageCostUsd(0);
-    }
-
-    /// @notice Tests setting the liquidity provider address.
-    function testSetLiquidityProvider() public {
-        vm.prank(OWNER);
-
-        vm.expectEmit(true, true, true, true);
-        emit LiquidityProviderSet(BOB);
-        verifier.setLiquidityProvider(BOB);
-
-        assertEq(verifier.liquidityProvider(), BOB, "Liquidity provider not set correctly");
-    }
-
-    /// @notice Tests setting an invalid liquidity provider address.
-    function testSetLiquidityProviderInvalidAddress() public {
-        vm.prank(OWNER);
-
-        vm.expectRevert(Errors.InvalidAddress.selector);
-        verifier.setLiquidityProvider(address(0));
     }
 }

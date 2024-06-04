@@ -21,9 +21,9 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees {
     /// @notice The cost of sending a message in USD.
     /// @dev The cost, denominated in USD, required to send a message. This value can be used to calculate fees for message.
     uint256 public messageCostUsd;
-    /// @notice The address of the liquidity provider.
-    /// @dev The address of the current liquidity provider, responsible for facilitating liquidity in the system. This address can be updated if needed.
-    address public liquidityProvider; 
+    
+    /// @notice Stores the session ID and accumulated fees amount.
+    mapping(uint256 => uint256) public fees;
 
     /// @notice The Oracle contract used to retrieve token prices.
     /// @dev This contract provides token price information required for fee calculation.
@@ -34,9 +34,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees {
 
     /// @notice Event emitted when the cost of sending a message in USD is set.
     event MessageCostUsdSet(uint256 newMessageCostUsd);
-
-    /// @notice Event emitted when the liquidity provider is set.
-    event LiquidityProviderSet(address indexed newLiquidityProvider);
 
     /// @notice Initializes the contract with the initial validator set and session identifier.
     /// @param _validators The initial list of validator addresses.
@@ -165,6 +162,8 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees {
             revert Errors.InsufficientFee();
         }
 
+        fees[session] += msg.value;
+
         emit FeePaid(payer, msg.value);
     }
 
@@ -188,16 +187,5 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoFees {
 
         messageCostUsd = _messageCostUsd;
         emit MessageCostUsdSet(_messageCostUsd);
-    }
-
-    /// @notice Sets the liquidity provider address.
-    /// @param _liquidityProvider The address of the new liquidity provider.
-    function _setLiquidityProvider(address _liquidityProvider) internal {
-        if (_liquidityProvider == address(0)) {
-            revert Errors.InvalidAddress();
-        }
-
-        liquidityProvider = _liquidityProvider;
-        emit LiquidityProviderSet(_liquidityProvider);
     }
 }
