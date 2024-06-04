@@ -159,26 +159,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         return false;
     }
 
-    /// @notice Retrieves the fee amount required to send a message.
-    /// @return The fee amount in wei.
-    function getFee() external view returns (uint256) {
-        return _getFee();
-    }
-
-    /// @notice Allows a payer to pay the fee for sending a message.
-    /// @param payer The address of the payer who is paying the fee.
-    function payFee(address payer) external payable {
-        uint256 fee = _getFee();
-
-        if (fee > msg.value) {
-            revert Errors.InsufficientFee();
-        }
-
-        fees[session] += msg.value;
-
-        emit FeePaid(payer, msg.value);
-    }
-
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
     function receiveMessage(EquitoMessage calldata message) external override onlySovereign(message) {
