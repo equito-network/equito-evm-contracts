@@ -216,7 +216,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
     /// @notice Transfers fees to the liquidity provider.
     /// @param liquidityProvider The address of the liquidity provider.
     /// @param amount The amount of fees to transfer.
-    function _transferFees(address liquidityProvider, uint256 amount) internal {
+    function _transferFees(address liquidityProvider, uint256 amount) internal nonReentrant() {
         if (liquidityProvider == address(0)) {
             revert Errors.InvalidLiquidityProvider();
         }
