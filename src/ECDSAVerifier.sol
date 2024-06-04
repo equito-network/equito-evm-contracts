@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {IEquitoFees} from "./interfaces/IEquitoFees.sol";
@@ -13,7 +12,7 @@ import {Errors} from "./libraries/Errors.sol";
 /// @notice This contract is part of the Equito Protocol and verifies that a set of `EquitoMessage` instances
 ///         have been signed by a sufficient number of Validators, as determined by the threshold.
 /// @dev Uses ECDSA for signature verification, adhering to the Ethereum standard.
-contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Ownable {
+contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice The list of validator addresses.
     address[] public validators;
     /// @notice The threshold percentage of validator signatures required for verification.
@@ -22,16 +21,13 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Ownable
     uint256 public session;
     /// @notice The cost of sending a message in USD.
     /// @dev The cost, denominated in USD, required to send a message. This value can be used to calculate fees for message.
-    uint256 public costMessageUsd;
-    /// @notice The address of the liquidity provider.
-    /// @dev The address of the current liquidity provider, responsible for facilitating liquidity in the system. This address can be updated if needed.
-    address public liquidityProvider; 
+    uint256 public messageCostUsd;
+    /// @notice Stores the session ID and accumulated fees amount.
+    mapping(uint256 => uint256) public fees;
     /// @notice The sovereign account address of the Equito Substrate chain.
     address public sovereignAccount;
     /// @notice The chain ID of the Equito Substrate chain.
     uint256 public sovereignChainId;
-
-    mapping(address => uint256) public liquidityProviderBalances;
 
     /// @notice The Oracle contract used to retrieve token prices.
     /// @dev This contract provides token price information required for fee calculation.
@@ -41,10 +37,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Ownable
     event ValidatorSetUpdated();
 
     /// @notice Event emitted when the cost of sending a message in USD is set.
-    event CostMessageUsdSet(uint256 newCostMessageUsd);
-
-    /// @notice Event emitted when the liquidity provider is set.
-    event LiquidityProviderSet(address indexed newLiquidityProvider);
+    event MessageCostUsdSet(uint256 newMessageCostUsd);
 
     /// @notice Event emitted when fees are transferred to the liquidity provider.
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
@@ -53,7 +46,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Ownable
     /// @param _validators The initial list of validator addresses.
     /// @param _session The initial session identifier.
     /// @param _oracle The address of the Oracle contract used to retrieve token prices.
-    constructor(address[] memory _validators, uint256 _session, address _oracle) Ownable(msg.sender) {
+    constructor(address[] memory _validators, uint256 _session, address _oracle) {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
@@ -181,40 +174,9 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Ownable
             revert Errors.InsufficientFee();
         }
 
+        fees[session] += msg.value;
+
         emit FeePaid(payer, msg.value);
-    }
-
-    /// @notice Calculates the fee amount required to send a message based on the current costMessageUsd and tokenPriceUsd from the Oracle.
-    /// @return The fee amount in wei.
-    function _getFee() internal view returns (uint256) {
-        uint256 tokenPriceUsd = oracle.getTokenPriceUsd();
-        if (tokenPriceUsd == 0) {
-            revert Errors.InvalidTokenPriceFromOracle();
-        }
-
-        return costMessageUsd / tokenPriceUsd;
-    }
-
-    /// @notice Sets the cost of sending a message in USD.
-    /// @param _costMessageUsd The new cost of sending a message in USD.
-    function setCostMessageUsd(uint256 _costMessageUsd) external onlyOwner {
-        if (_costMessageUsd == 0) {
-            revert Errors.CostMustBeGreaterThanZero();
-        }
-
-        costMessageUsd = _costMessageUsd;
-        emit CostMessageUsdSet(_costMessageUsd);
-    }
-
-    /// @notice Sets the liquidity provider address.
-    /// @param _liquidityProvider The address of the new liquidity provider.
-    function setLiquidityProvider(address _liquidityProvider) external onlyOwner {
-        if (_liquidityProvider == address(0)) {
-            revert Errors.InvalidAddress();
-        }
-
-        liquidityProvider = _liquidityProvider;
-        emit LiquidityProviderSet(_liquidityProvider);
     }
 
     /// @notice Receives a cross-chain message from the Router contract.
@@ -230,38 +192,48 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Ownable
             updateValidators(newValidators, proof);
         } else if (operation == 0x02) {
             // Update the message cost
-            uint256 newCostMessageUsd;
-            (newCostMessageUsd) = abi.decode(message.data[1:], (uint256));
-            setCostMessageUsd(newCostMessageUsd);
+            uint256 newMessageCostUsd;
+            (newMessageCostUsd) = abi.decode(message.data[1:], (uint256));
+            _setMessageCostUsd(newMessageCostUsd);
         } else if (operation == 0x03) {
-            // Update the liquidity provider
-            address newNewLiquidityProvider;
-            (newNewLiquidityProvider) = abi.decode(message.data[1:], (address));
-            setLiquidityProvider(newNewLiquidityProvider);
-        } else if (operation == 0x04) {
             // Transfer fees to the liquidity provider
+            address liquidityProvider;
             uint256 amount;
-            (amount) = abi.decode(message.data[1:], (uint256));
-
-            // Confirms that a certain liquidity provider did its job on Equito
-            require(verifyLiquidityProviderFulfillment(liquidityProvider), "Liquidity provider has not fulfilled");
+            (liquidityProvider, amount) = abi.decode(message.data[1:], (address, uint256));
             
-            transferFees(amount);
+            transferFees(liquidityProvider, amount);
         } else {
             revert Errors.InvalidOperation();
         }
     }
 
     /// @notice Transfers fees to the liquidity provider.
+    /// @param liquidityProvider The address of the liquidity provider.
     /// @param amount The amount of fees to transfer.
-    function transferFees(uint256 amount) internal {
-        // Transfer the specified amount of Ether to the liquidity provider
+    function transferFees(address liquidityProvider, uint256 amount) internal {
         payable(liquidityProvider).transfer(amount);
         emit FeesTransferred(liquidityProvider, session, amount);
     }
 
-    function verifyLiquidityProviderFulfillment(address provider) internal view returns (bool) {
-        uint256 requiredAmount = 1 ether;
-        return liquidityProviderBalances[provider] >= requiredAmount;
+    /// @notice Calculates the fee amount required to send a message based on the current messageCostUsd and tokenPriceUsd from the Oracle.
+    /// @return The fee amount in wei.
+    function _getFee() internal view returns (uint256) {
+        uint256 tokenPriceUsd = oracle.getTokenPriceUsd();
+        if (tokenPriceUsd == 0) {
+            revert Errors.InvalidTokenPriceFromOracle();
+        }
+
+        return messageCostUsd / tokenPriceUsd;
+    }
+
+    /// @notice Sets the cost of sending a message in USD.
+    /// @param _messageCostUsd The new cost of sending a message in USD.
+    function _setMessageCostUsd(uint256 _messageCostUsd) internal {
+        if (_messageCostUsd == 0) {
+            revert Errors.CostMustBeGreaterThanZero();
+        }
+
+        messageCostUsd = _messageCostUsd;
+        emit MessageCostUsdSet(_messageCostUsd);
     }
 }
