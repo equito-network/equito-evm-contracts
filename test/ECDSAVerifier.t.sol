@@ -18,6 +18,7 @@ contract ECDSAVerifierTest is Test {
     address constant OWNER = address(0x03132);
     address constant ALICE = address(0xA11CE);
     address constant BOB = address(0xB0B);
+    bytes equitoAddress = hex"45717569746f";
 
     event FeePaid(address indexed payer, uint256 amount);
     event MessageCostUsdSet(uint256 newMessageCostUsd);
@@ -38,11 +39,63 @@ contract ECDSAVerifierTest is Test {
         vm.startPrank(OWNER);
         oracle = new MockOracle();
         router = new MockRouter();
-        verifier = new MockECDSAVerifier(validators, 0, address(oracle), address(router));
+        verifier = new MockECDSAVerifier(validators, 0, address(oracle), address(router), equitoAddress);
         verifier.setMessageCostUsd(1000);
         vm.stopPrank();
     }
 
+    /// @dev Tests the onlySovereign modifier with a valid message
+    function testOnlySovereignModifierSuccess() public {
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(0x05)
+        });
+
+        vm.prank(address(router));
+        vm.expectRevert(Errors.InvalidOperation.selector);
+        verifier.receiveMessage(message);
+    }
+
+    /// @dev Tests the onlySovereign modifier with an invalid sender
+    function testOnlySovereignModifierWithInvalidSender() public {
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(ALICE),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(0x01)
+        });
+
+        vm.prank(address(router));
+        vm.expectRevert(Errors.InvalidSovereign.selector);
+        verifier.receiveMessage(message);
+    }
+
+    /// @dev Tests the onlySovereign modifier with an invalid chain ID
+    function testOnlySovereignModifierWithInvalidChainId() public {
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 1,
+            sender: abi.encode(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(0x01)
+        });
+
+        vm.prank(address(router));
+        vm.expectRevert(Errors.InvalidSovereign.selector);
+        verifier.receiveMessage(message);
+    }
+
+    /// @dev Helper function to sign a message hash with a given secret key
+    /// @param messageHash The hash of the message to sign
+    /// @param secret The secret key used to sign the message
+    /// @return The signature of the message
     function signMessage(
         bytes32 messageHash,
         uint256 secret
@@ -307,7 +360,7 @@ contract ECDSAVerifierTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
-            sender: abi.encode(ALICE),
+            sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(BOB),
             data: abi.encode(0x01, validators, proof)
@@ -335,7 +388,7 @@ contract ECDSAVerifierTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
-            sender: abi.encode(ALICE),
+            sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(BOB),
             data: abi.encode(0x02, 0.5 ether)
@@ -365,7 +418,7 @@ contract ECDSAVerifierTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
-            sender: abi.encode(address(verifier)),
+            sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(liquidityProvider),
             data: abi.encode(0x03, liquidityProvider, transferAmount)
@@ -385,13 +438,13 @@ contract ECDSAVerifierTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
-            sender: abi.encode(ALICE),
+            sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(BOB),
             data: abi.encode(0x05)
         });
 
-        vm.prank(address(verifier));
+        vm.prank(address(router));
         vm.expectRevert(Errors.InvalidOperation.selector);
         verifier.receiveMessage(message);
     }
