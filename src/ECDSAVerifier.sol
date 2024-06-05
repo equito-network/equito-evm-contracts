@@ -27,6 +27,9 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
     /// @notice Stores the session ID and accumulated fees amount.
     mapping(uint256 => uint256) public fees;
 
+    /// @notice The Equito Protocol address represented in bytes
+    bytes public eqitoAddress = hex"45717569746f";
+
     /// @notice The Oracle contract used to retrieve token prices.
     /// @dev This contract provides token price information required for fee calculation.
     IOracle public oracle;
@@ -48,14 +51,15 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
     /// @param _validators The initial list of validator addresses.
     /// @param _session The initial session identifier.
     /// @param _oracle The address of the Oracle contract used to retrieve token prices.
-    constructor(address[] memory _validators, uint256 _session, address _oracle) {
+    constructor(address[] memory _validators, uint256 _session, address _oracle, address _router) {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
+        router = IRouter(_router);
     }
     
     modifier onlySovereign(EquitoMessage calldata message) {
-        if (message.sourceChainSelector != 0 && keccak256(message.sender) != keccak256(abi.encode(hex"45717569746f"))) revert Errors.InvalidSovereign(message.sourceChainSelector, message.sender);
+        if (message.sourceChainSelector != 0 && keccak256(message.sender) != keccak256(abi.encode(eqitoAddress))) revert Errors.InvalidSovereign(message.sourceChainSelector, message.sender);
         _;
     }
 
@@ -90,24 +94,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
         bytes32 hashed = keccak256(abi.encode(session, _validators));
 
         if (this.verifySignatures(hashed, proof)) {
-            uint256 currentSession = session;
-
-            // Send a message through the Router to notify about the end of the session
-            /*EquitoMessage memory endSessionMessage = EquitoMessage({
-                blockNumber: block.number,
-                sourceChainSelector: 0,
-                sender: abi.encode(address(this)),
-                destinationChainSelector: 0,
-                receiver: abi.encode(address(router)),
-                data: abi.encode(currentSession, fees[currentSession])
-            });
-
-            router.sendMessage(
-                abi.encode(address(router)),
-                0,
-                abi.encode(endSessionMessage)
-            ); */
-            
             validators = _validators;
             session += 1;
 
@@ -213,7 +199,15 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
             bytes memory proof;
             (, newValidators, proof) = abi.decode(message.data, (bytes32, address[], bytes));
 
+            uint256 oldSessionNumber = session;
+
             this.updateValidators(newValidators, proof);
+         
+            router.sendMessage(
+                abi.encode(eqitoAddress), 
+                0, 
+                abi.encode(oldSessionNumber, fees[oldSessionNumber])
+            ); 
         } else if (operation == 0x02) {
             // Update the message cost
             uint256 newMessageCostUsd;

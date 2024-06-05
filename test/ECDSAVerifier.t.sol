@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {ECDSAVerifier} from "../src/ECDSAVerifier.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockOracle} from "./mock/MockOracle.sol";
+import {MockRouter} from "./mock/MockRouter.sol";
 import {MockInvalidReceiver} from "./mock/MockInvalidReceiver.sol";
 import {MockECDSAVerifier} from "./mock/MockECDSAVerifier.sol";
 import {Errors} from "../src/libraries/Errors.sol";
@@ -12,6 +13,7 @@ import {Errors} from "../src/libraries/Errors.sol";
 contract ECDSAVerifierTest is Test {
     MockECDSAVerifier verifier;
     MockOracle oracle;
+    MockRouter router;
 
     address constant OWNER = address(0x03132);
     address constant ALICE = address(0xA11CE);
@@ -22,6 +24,7 @@ contract ECDSAVerifierTest is Test {
     event LiquidityProviderSet(address indexed newLiquidityProvider);
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
     event ValidatorSetUpdated();
+    event MessageSendRequested(address indexed sender, EquitoMessage message);
 
     function setUp() public {
         (address alith, ) = makeAddrAndKey("alith");
@@ -35,12 +38,8 @@ contract ECDSAVerifierTest is Test {
 
         vm.startPrank(OWNER);
         oracle = new MockOracle();
-        verifier = new MockECDSAVerifier(validators, 0, address(oracle));
-        verifier.setMessageCostUsd(1000);
-        vm.stopPrank();
-        vm.startPrank(OWNER);
-        oracle = new MockOracle();
-        verifier = new MockECDSAVerifier(validators, 0, address(oracle));
+        router = new MockRouter();
+        verifier = new MockECDSAVerifier(validators, 0, address(oracle), address(router));
         verifier.setMessageCostUsd(1000);
         vm.stopPrank();
     }
