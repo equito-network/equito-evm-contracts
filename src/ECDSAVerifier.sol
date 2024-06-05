@@ -27,8 +27,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
     mapping(uint256 => uint256) public fees;
     /// @notice The sovereign account address of the Equito Substrate chain.
     address public sovereignAccount;
-    /// @notice The chain ID of the Equito Substrate chain.
-    uint256 public sovereignChainId;
 
     /// @notice The Oracle contract used to retrieve token prices.
     /// @dev This contract provides token price information required for fee calculation.
@@ -54,7 +52,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
     }
 
     modifier onlySovereign(EquitoMessage calldata message) {
-        if (message.sourceChainSelector != sovereignChainId && msg.sender != sovereignAccount) revert Errors.InvalidSovereign(sovereignChainId, sovereignAccount);
+        if (message.sourceChainSelector != 0 && msg.sender != address(0x000000000000000000000045717569746f)) revert Errors.InvalidSovereign(message.sourceChainSelector, msg.sender);
         _;
     }
 

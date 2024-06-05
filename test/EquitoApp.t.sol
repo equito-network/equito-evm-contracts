@@ -43,7 +43,7 @@ contract EquitoAppTest is Test {
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 0,
             sender: abi.encode(ALICE),
             destinationChainSelector: 2,
             receiver: abi.encode(address(app)),
