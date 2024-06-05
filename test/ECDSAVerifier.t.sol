@@ -38,6 +38,11 @@ contract ECDSAVerifierTest is Test {
         verifier = new MockECDSAVerifier(validators, 0, address(oracle));
         verifier.setMessageCostUsd(1000);
         vm.stopPrank();
+        vm.startPrank(OWNER);
+        oracle = new MockOracle();
+        verifier = new MockECDSAVerifier(validators, 0, address(oracle));
+        verifier.setMessageCostUsd(1000);
+        vm.stopPrank();
     }
 
     function signMessage(
