@@ -61,7 +61,7 @@ library Errors {
     /// @notice Thrown when a message is received from an invalid sovereign account.
     /// @param chainId The chain ID of the supposed sovereign account.
     /// @param sovereign The address of the supposed sovereign account.
-    error InvalidSovereign(uint256 chainId, address sovereign);
+    error InvalidSovereign(uint256 chainId, bytes sovereign);
 
     /// @notice Thrown when an invalid operation code is encountered in the received message.
     error InvalidOperation();

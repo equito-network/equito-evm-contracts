@@ -53,9 +53,9 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
         session = _session;
         oracle = IOracle(_oracle);
     }
-
+    
     modifier onlySovereign(EquitoMessage calldata message) {
-        if (message.sourceChainSelector != 0 && keccak256(abi.encodePacked(msg.sender)) != keccak256(abi.encodePacked(hex"45717569746f"))) revert Errors.InvalidSovereign(message.sourceChainSelector, msg.sender);
+        if (message.sourceChainSelector != 0 && keccak256(message.sender) != keccak256(abi.encode(hex"45717569746f"))) revert Errors.InvalidSovereign(message.sourceChainSelector, message.sender);
         _;
     }
 
