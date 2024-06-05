@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
+import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoFees} from "./interfaces/IEquitoFees.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
@@ -25,12 +26,14 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
     uint256 public messageCostUsd;
     /// @notice Stores the session ID and accumulated fees amount.
     mapping(uint256 => uint256) public fees;
-    /// @notice The sovereign account address of the Equito Substrate chain.
-    address public sovereignAccount;
 
     /// @notice The Oracle contract used to retrieve token prices.
     /// @dev This contract provides token price information required for fee calculation.
     IOracle public oracle;
+
+    /// @notice The Router contract used to send cross-chain messages.
+    /// @dev This contract is responsible for routing messages across different chains in the protocol.
+    IRouter public router;
 
     /// @notice Emitted when the validator set is updated.
     event ValidatorSetUpdated();
@@ -52,7 +55,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
     }
 
     modifier onlySovereign(EquitoMessage calldata message) {
-        if (message.sourceChainSelector != 0 && msg.sender != address(0x000000000000000000000045717569746f)) revert Errors.InvalidSovereign(message.sourceChainSelector, msg.sender);
+        if (message.sourceChainSelector != 0 && keccak256(abi.encodePacked(msg.sender)) != keccak256(abi.encodePacked(hex"45717569746f"))) revert Errors.InvalidSovereign(message.sourceChainSelector, msg.sender);
         _;
     }
 
@@ -87,6 +90,24 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
         bytes32 hashed = keccak256(abi.encode(session, _validators));
 
         if (this.verifySignatures(hashed, proof)) {
+            uint256 currentSession = session;
+
+            // Send a message through the Router to notify about the end of the session
+            /*EquitoMessage memory endSessionMessage = EquitoMessage({
+                blockNumber: block.number,
+                sourceChainSelector: 0,
+                sender: abi.encode(address(this)),
+                destinationChainSelector: 0,
+                receiver: abi.encode(address(router)),
+                data: abi.encode(currentSession, fees[currentSession])
+            });
+
+            router.sendMessage(
+                abi.encode(address(router)),
+                0,
+                abi.encode(endSessionMessage)
+            ); */
+            
             validators = _validators;
             session += 1;
 
