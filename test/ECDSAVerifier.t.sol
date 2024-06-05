@@ -24,7 +24,6 @@ contract ECDSAVerifierTest is Test {
     event LiquidityProviderSet(address indexed newLiquidityProvider);
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
     event ValidatorSetUpdated();
-    event MessageSendRequested(address indexed sender, EquitoMessage message);
 
     function setUp() public {
         (address alith, ) = makeAddrAndKey("alith");
@@ -316,6 +315,7 @@ contract ECDSAVerifierTest is Test {
 
         vm.expectEmit(true, true, true, true);
         emit ValidatorSetUpdated();
+        
         verifier.receiveMessage(message);
         
         assert(verifier.validators(0) == charleth);

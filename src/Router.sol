@@ -66,6 +66,7 @@ contract Router is IRouter {
             receiver: receiver,
             data: data
         });
+        
         emit MessageSendRequested(msg.sender, newMessage);
 
         return EquitoMessageLibrary._hash(newMessage);
