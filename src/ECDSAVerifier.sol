@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {IRouter} from "./interfaces/IRouter.sol";
@@ -14,7 +13,7 @@ import {Errors} from "./libraries/Errors.sol";
 /// @notice This contract is part of the Equito Protocol and verifies that a set of `EquitoMessage` instances
 ///         have been signed by a sufficient number of Validators, as determined by the threshold.
 /// @dev Uses ECDSA for signature verification, adhering to the Ethereum standard.
-contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, ReentrancyGuard {
+contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice The list of validator addresses.
     address[] public validators;
     /// @notice The threshold percentage of validator signatures required for verification.
@@ -230,7 +229,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees, Reentra
     /// @notice Transfers fees to the liquidity provider.
     /// @param liquidityProvider The address of the liquidity provider.
     /// @param amount The amount of fees to transfer.
-    function _transferFees(address liquidityProvider, uint256 amount) internal nonReentrant() {
+    function _transferFees(address liquidityProvider, uint256 amount) internal {
         if (liquidityProvider == address(0)) {
             revert Errors.InvalidLiquidityProvider();
         }
