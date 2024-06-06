@@ -192,17 +192,18 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
         if (operation == 0x01) {
             // Update the validator set
+            uint256 currentSession;
             address[] memory newValidators;
-            (, newValidators) = abi.decode(message.data, (bytes32, address[]));
+            (, currentSession, newValidators) = abi.decode(message.data, (bytes32, uint256, address[]));
 
-            uint256 oldSessionNumber = session;
+            if (currentSession != session) revert Errors.SessionIdMismatch();
 
             this.updateValidators(newValidators);
          
             router.sendMessage(
                 abi.encode(equitoAddress), 
                 0, 
-                abi.encode(oldSessionNumber, fees[oldSessionNumber])
+                abi.encode(currentSession, fees[currentSession])
             ); 
         } else if (operation == 0x02) {
             // Update the message cost

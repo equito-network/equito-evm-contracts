@@ -72,4 +72,7 @@ library Errors {
 
     /// @notice Thrown when an invalid equito address is provided, such as the zero bytes address.
     error InvalidEquitoAddress();
+
+    /// @notice Thrown when there is a mismatch in session IDs during validation.
+    error SessionIdMismatch();
 }

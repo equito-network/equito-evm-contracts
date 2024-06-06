@@ -361,7 +361,7 @@ contract ECDSAVerifierTest is Test {
             sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(BOB),
-            data: abi.encode(bytes1(0x01), validators)
+            data: abi.encode(bytes1(0x01), 0, validators)
         });
 
         vm.expectEmit(true, true, true, true);
@@ -371,6 +371,25 @@ contract ECDSAVerifierTest is Test {
         
         assert(verifier.validators(0) == charleth);
         assertEq(verifier.session(), session + 1);
+    }
+
+    /// @notice Tests the receive message with update validators command when session IDs do not match.
+    function testReceiveMessageUpdateValidatorsSessionIdMismatch() external {
+        uint256 session = verifier.session();
+
+        address[] memory validators = new address[](1);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(bytes1(0x01), session + 1, validators)
+        });
+        
+        vm.expectRevert(Errors.SessionIdMismatch.selector);
+        verifier.receiveMessage(message);
     }
 
     /// @notice Tests the receive message with set message cost usd command.
