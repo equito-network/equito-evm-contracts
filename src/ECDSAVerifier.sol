@@ -44,22 +44,22 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
 
     /// @notice The Equito Protocol address represented in bytes
-    bytes public eqitoAddress;
+    bytes public equitoAddress;
 
     /// @notice Initializes the contract with the initial validator set and session identifier.
     /// @param _validators The initial list of validator addresses.
     /// @param _session The initial session identifier.
     /// @param _oracle The address of the Oracle contract used to retrieve token prices.
-    constructor(address[] memory _validators, uint256 _session, address _oracle, address _router, bytes memory _eqitoAddress) {
+    constructor(address[] memory _validators, uint256 _session, address _oracle, address _router, bytes memory _equitoAddress) {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
         router = IRouter(_router);
-        eqitoAddress = _eqitoAddress;
+        equitoAddress = _equitoAddress;
     }
     
     modifier onlySovereign(EquitoMessage calldata message) {
-        if (message.sourceChainSelector != 0 || keccak256(message.sender) != keccak256(abi.encode(eqitoAddress))) revert Errors.InvalidSovereign();
+        if (message.sourceChainSelector != 0 || keccak256(message.sender) != keccak256(abi.encode(equitoAddress))) revert Errors.InvalidSovereign();
         _;
     }
 
@@ -204,7 +204,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             this.updateValidators(newValidators, proof);
          
             router.sendMessage(
-                abi.encode(eqitoAddress), 
+                abi.encode(equitoAddress), 
                 0, 
                 abi.encode(oldSessionNumber, fees[oldSessionNumber])
             ); 
