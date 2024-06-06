@@ -38,13 +38,13 @@ contract EquitoMessageLibraryTest is Test {
             abi.encodePacked(
                 keccak256(
                     abi.encodePacked(
-                        message1.sender,
-                        message1.receiver,
                         message1.blockNumber,
                         message1.sourceChainSelector,
                         message1.destinationChainSelector
                     )
                 ),
+                keccak256(message1.sender),
+                keccak256(message1.receiver),
                 keccak256(message1.data)
             )
         );
@@ -53,13 +53,13 @@ contract EquitoMessageLibraryTest is Test {
             abi.encodePacked(
                 keccak256(
                     abi.encodePacked(
-                        message2.sender,
-                        message2.receiver,
                         message2.blockNumber,
                         message2.sourceChainSelector,
                         message2.destinationChainSelector
                     )
                 ),
+                keccak256(message2.sender),
+                keccak256(message2.receiver),
                 keccak256(message2.data)
             )
         );
