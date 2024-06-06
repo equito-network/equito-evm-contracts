@@ -25,6 +25,7 @@ contract ECDSAVerifierTest is Test {
     event LiquidityProviderSet(address indexed newLiquidityProvider);
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
     event ValidatorSetUpdated();
+    event EquitoAddressSet();
 
     function setUp() public {
         (address alith, ) = makeAddrAndKey("alith");
@@ -249,6 +250,25 @@ contract ECDSAVerifierTest is Test {
         verifier.setMessageCostUsd(0);
     }
 
+    /// @notice Tests setting the equito address.
+    function testSetEquitoAddress() public {
+        vm.prank(OWNER);
+
+        vm.expectEmit(true, true, true, true);
+        emit EquitoAddressSet();
+        verifier.setEquitoAddress(hex"45717569746f4e6577");
+
+        assertEq(verifier.equitoAddress(), hex"45717569746f4e6577", "Equito address not set correctly");
+    }
+
+    /// @notice Tests setting the zero bytes equito address.
+    function testSetEquitoAddressInvalid() public {
+        vm.prank(OWNER);
+        
+        vm.expectRevert(Errors.InvalidEquitoAddress.selector);
+        verifier.setEquitoAddress(hex"");
+    }
+
     /// @notice Tests the transfer fees.
     function testTransferFees() public {
         uint256 initialAmount = 1 ether;
@@ -401,6 +421,32 @@ contract ECDSAVerifierTest is Test {
         assertEq(verifier.messageCostUsd(), 0.5 ether, "Message cost USD not set correctly");
     }
 
+    /// @notice Tests the receive message with set equito address command.
+    function testReceiveMessageSetEquitoAddress() external {
+        vm.prank(OWNER);
+
+        vm.expectEmit(true, true, true, true);
+        emit EquitoAddressSet();
+        verifier.setEquitoAddress(hex"45717569746f");
+        
+        assertEq(verifier.equitoAddress(), hex"45717569746f", "Equito address not set correctly");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(bytes1(0x03), hex"45717569746f4e6577")
+        });
+
+        vm.expectEmit(true, true, true, true);
+        emit EquitoAddressSet();
+        verifier.receiveMessage(message);
+        
+        assertEq(verifier.equitoAddress(), hex"45717569746f4e6577", "Equito address not set correctly");
+    }
+
     /// @notice Tests the receive message with transfer fees command.
     function testReceiveMessageTransferFees() external {
         uint256 initialAmount = 1 ether;
@@ -421,7 +467,7 @@ contract ECDSAVerifierTest is Test {
             sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(liquidityProvider),
-            data: abi.encode(bytes1(0x03), liquidityProvider, transferAmount)
+            data: abi.encode(bytes1(0x04), liquidityProvider, transferAmount)
         });
 
         vm.prank(address(verifier));

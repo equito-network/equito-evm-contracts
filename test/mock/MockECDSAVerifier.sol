@@ -18,4 +18,9 @@ contract MockECDSAVerifier is ECDSAVerifier {
     function setMessageCostUsd(uint256 _messageCostUsd) external {
         _setMessageCostUsd(_messageCostUsd);
     }
+
+    function setEquitoAddress(bytes memory _equitoAddress) external {
+        _setEquitoAddress(_equitoAddress);
+    }
+    
 }

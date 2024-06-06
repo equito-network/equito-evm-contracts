@@ -43,6 +43,9 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Event emitted when fees are transferred to the liquidity provider.
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
 
+    /// @notice Event emitted when the equito address is set.
+    event EquitoAddressSet();
+
     /// @notice The Equito Protocol address represented in bytes
     bytes public equitoAddress;
 
@@ -215,6 +218,12 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
             _setMessageCostUsd(newMessageCostUsd);
         } else if (operation == 0x03) {
+            // Update the equito address
+            bytes memory newEquitoAddress;
+            (, newEquitoAddress) = abi.decode(message.data, (bytes32, bytes));
+
+            _setEquitoAddress(newEquitoAddress);
+        } else if (operation == 0x04) {
             // Transfer fees to the liquidity provider
             address liquidityProvider;
             uint256 amount;
@@ -266,5 +275,16 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
         messageCostUsd = _messageCostUsd;
         emit MessageCostUsdSet(_messageCostUsd);
+    }
+
+    /// @notice Sets the equitoAddress if it is not zero bytes.
+    /// @param _equitoAddress The new equito address to set.
+    function _setEquitoAddress(bytes memory _equitoAddress) internal {
+         if (_equitoAddress.length == 0) {
+            revert Errors.InvalidEquitoAddress();
+        }
+
+        equitoAddress = _equitoAddress;
+        emit EquitoAddressSet();
     }
 }
