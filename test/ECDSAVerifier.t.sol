@@ -363,7 +363,7 @@ contract ECDSAVerifierTest is Test {
             sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(BOB),
-            data: abi.encode(0x01, validators, proof)
+            data: abi.encode(bytes1(0x01), validators, proof)
         });
 
         vm.expectEmit(true, true, true, true);
@@ -391,7 +391,7 @@ contract ECDSAVerifierTest is Test {
             sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(BOB),
-            data: abi.encode(0x02, 0.5 ether)
+            data: abi.encode(bytes1(0x02), 0.5 ether)
         });
 
         vm.expectEmit(true, true, true, true);
@@ -421,7 +421,7 @@ contract ECDSAVerifierTest is Test {
             sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(liquidityProvider),
-            data: abi.encode(0x03, liquidityProvider, transferAmount)
+            data: abi.encode(bytes1(0x03), liquidityProvider, transferAmount)
         });
 
         vm.prank(address(verifier));
@@ -441,7 +441,7 @@ contract ECDSAVerifierTest is Test {
             sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(BOB),
-            data: abi.encode(0x05)
+            data: abi.encode(bytes1(0x05))
         });
 
         vm.prank(address(router));

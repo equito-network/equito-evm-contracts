@@ -191,7 +191,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
     function receiveMessage(EquitoMessage calldata message) external override onlySovereign(message) {
-        bytes1 operation = message.data[31];
+        bytes1 operation = message.data[0];
 
         if (operation == 0x01) {
             // Update the validator set
