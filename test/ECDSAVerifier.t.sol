@@ -130,6 +130,120 @@ contract ECDSAVerifierTest is Test {
         console.log(verifier.verifyMessages(messages, proof));
     }
 
+    function testVerifyMultipleMessages() public {
+        (address alith, uint256 alithSecret) = makeAddrAndKey("alith");
+        (address baltathar, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (address charleth, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        EquitoMessage[] memory messages = new EquitoMessage[](5);
+        messages[0] = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(alith),
+            destinationChainSelector: 2,
+            receiver: abi.encode(baltathar),
+            data: abi.encode("Message #1")
+        });
+        messages[1] = EquitoMessage({
+            blockNumber: 2,
+            sourceChainSelector: 2,
+            sender: abi.encode(baltathar),
+            destinationChainSelector: 1,
+            receiver: abi.encode(alith),
+            data: abi.encode("Message #2")
+        });
+        messages[2] = EquitoMessage({
+            blockNumber: 3,
+            sourceChainSelector: 1,
+            sender: abi.encode(alith),
+            destinationChainSelector: 3,
+            receiver: abi.encode(charleth),
+            data: abi.encode("Message #3")
+        });
+        messages[3] = EquitoMessage({
+            blockNumber: 4,
+            sourceChainSelector: 3,
+            sender: abi.encode(charleth),
+            destinationChainSelector: 1,
+            receiver: abi.encode(alith),
+            data: abi.encode("Message #5")
+        });
+        messages[4] = EquitoMessage({
+            blockNumber: 5,
+            sourceChainSelector: 3,
+            sender: abi.encode(charleth),
+            destinationChainSelector: 2,
+            receiver: abi.encode(alith),
+            data: abi.encode("Message #5")
+        });
+        bytes32 messagesHash = EquitoMessageLibrary._hashMultipleMessages(messages);
+
+        bytes memory proof = bytes.concat(
+            signMessage(messagesHash, charlethSecret),
+            signMessage(messagesHash, alithSecret),
+            signMessage(messagesHash, baltatharSecret)
+        );
+
+        console.log(verifier.verifyMessages(messages, proof));
+    }
+
+    function testVerifyMultipleMessagesUnoptimized() public {
+        (address alith, uint256 alithSecret) = makeAddrAndKey("alith");
+        (address baltathar, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (address charleth, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        EquitoMessage[] memory messages = new EquitoMessage[](5);
+        messages[0] = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: abi.encode(alith),
+            destinationChainSelector: 2,
+            receiver: abi.encode(baltathar),
+            data: abi.encode("Message #1")
+        });
+        messages[1] = EquitoMessage({
+            blockNumber: 2,
+            sourceChainSelector: 2,
+            sender: abi.encode(baltathar),
+            destinationChainSelector: 1,
+            receiver: abi.encode(alith),
+            data: abi.encode("Message #2")
+        });
+        messages[2] = EquitoMessage({
+            blockNumber: 3,
+            sourceChainSelector: 1,
+            sender: abi.encode(alith),
+            destinationChainSelector: 3,
+            receiver: abi.encode(charleth),
+            data: abi.encode("Message #3")
+        });
+        messages[3] = EquitoMessage({
+            blockNumber: 4,
+            sourceChainSelector: 3,
+            sender: abi.encode(charleth),
+            destinationChainSelector: 1,
+            receiver: abi.encode(alith),
+            data: abi.encode("Message #5")
+        });
+        messages[4] = EquitoMessage({
+            blockNumber: 5,
+            sourceChainSelector: 3,
+            sender: abi.encode(charleth),
+            destinationChainSelector: 2,
+            receiver: abi.encode(alith),
+            data: abi.encode("Message #5")
+        });
+        bytes32 messagesHash = keccak256(abi.encode(messages));//EquitoMessageLibrary._hashMultipleMessages(messages);
+
+        bytes memory proof = bytes.concat(
+            signMessage(messagesHash, charlethSecret),
+            signMessage(messagesHash, alithSecret),
+            signMessage(messagesHash, baltatharSecret)
+        );
+
+        console.log(verifier.verifyMessagesUnoptimized(messages, proof));
+    }
+
     /// @notice Tests the updating of validators.
     function testUpdateValidators() public {
         (, uint256 alithSecret) = makeAddrAndKey("alith");

@@ -35,9 +35,9 @@ contract EquitoMessageLibraryTest is Test {
         bytes32 hash2 = EquitoMessageLibrary._hash(message2);
 
         bytes32 expectedHash1 = keccak256(
-            abi.encode(
+            abi.encodePacked(
                 keccak256(
-                    abi.encode(
+                    abi.encodePacked(
                         message1.sender,
                         message1.receiver,
                         message1.blockNumber,
@@ -50,9 +50,9 @@ contract EquitoMessageLibraryTest is Test {
         );
 
         bytes32 expectedHash2 = keccak256(
-            abi.encode(
+            abi.encodePacked(
                 keccak256(
-                    abi.encode(
+                    abi.encodePacked(
                         message2.sender,
                         message2.receiver,
                         message2.blockNumber,

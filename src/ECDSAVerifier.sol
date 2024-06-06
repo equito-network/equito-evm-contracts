@@ -78,7 +78,26 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             hashed = EquitoMessageLibrary._hash(messages[0]);
         } else {
             // TODO: use a more efficient way to hash multiple messages
+            //hashed = keccak256(abi.encode(messages));
+            hashed = EquitoMessageLibrary._hashMultipleMessages(messages);
+        }
+
+        return this.verifySignatures(hashed, proof);
+    }
+
+    function verifyMessagesUnoptimized(
+        EquitoMessage[] calldata messages,
+        bytes calldata proof
+    ) external view returns (bool) {
+        if (messages.length == 0) return false;
+
+        bytes32 hashed;
+        if (messages.length == 1) {
+            hashed = EquitoMessageLibrary._hash(messages[0]);
+        } else {
+            // TODO: use a more efficient way to hash multiple messages
             hashed = keccak256(abi.encode(messages));
+            //hashed = EquitoMessageLibrary._hashMultipleMessages(messages);
         }
 
         return this.verifySignatures(hashed, proof);

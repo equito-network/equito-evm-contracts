@@ -35,9 +35,9 @@ library EquitoMessageLibrary {
     ) internal pure returns (bytes32) {
         return
             keccak256(
-                abi.encode(
+                abi.encodePacked(
                     keccak256(
-                        abi.encode(
+                        abi.encodePacked(
                             original.sender,
                             original.receiver,
                             original.blockNumber,
@@ -48,5 +48,16 @@ library EquitoMessageLibrary {
                     keccak256(original.data)
                 )
             );
+    }
+
+    function _hashMultipleMessages(
+        EquitoMessage[] memory messages
+    ) internal pure returns (bytes32) {
+        bytes32[] memory messageHashes;
+        for (uint256 i = 0; i < messages.length; ) {
+            messageHashes.push(EquitoMessageLibrary._hash(messages[i]));
+            unchecked { ++i; }
+        }
+        return keccak256(abi.encodePacked(messageHashes));
     }
 }
