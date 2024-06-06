@@ -89,19 +89,13 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
     /// @notice Updates the list of Validators.
     /// @param _validators The new list of validator addresses.
-    /// @param proof The concatenated ECDSA signatures from the current validators approving the new set.
     function updateValidators(
-        address[] calldata _validators,
-        bytes calldata proof
+        address[] calldata _validators
     ) external {
-        bytes32 hashed = keccak256(abi.encode(session, _validators));
+        validators = _validators;
+        session += 1;
 
-        if (this.verifySignatures(hashed, proof)) {
-            validators = _validators;
-            session += 1;
-
-            emit ValidatorSetUpdated();
-        }
+        emit ValidatorSetUpdated();
     }
 
     /// @notice Verifies that a hashed message has been signed by a sufficient number of Validators.
@@ -199,12 +193,11 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         if (operation == 0x01) {
             // Update the validator set
             address[] memory newValidators;
-            bytes memory proof;
-            (, newValidators, proof) = abi.decode(message.data, (bytes32, address[], bytes));
+            (, newValidators) = abi.decode(message.data, (bytes32, address[]));
 
             uint256 oldSessionNumber = session;
 
-            this.updateValidators(newValidators, proof);
+            this.updateValidators(newValidators);
          
             router.sendMessage(
                 abi.encode(equitoAddress), 

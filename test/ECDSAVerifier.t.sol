@@ -133,23 +133,14 @@ contract ECDSAVerifierTest is Test {
 
     /// @notice Tests the updating of validators.
     function testUpdateValidators() public {
-        (, uint256 alithSecret) = makeAddrAndKey("alith");
-        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
-        (address charleth, uint256 charlethSecret) = makeAddrAndKey("charleth");
+        (address charleth, ) = makeAddrAndKey("charleth");
 
         uint256 session = verifier.session();
 
         address[] memory validators = new address[](1);
         validators[0] = charleth;
-        bytes32 messageHash = keccak256(abi.encode(session, validators));
 
-        bytes memory proof = bytes.concat(
-            signMessage(messageHash, charlethSecret),
-            signMessage(messageHash, alithSecret),
-            signMessage(messageHash, baltatharSecret)
-        );
-
-        verifier.updateValidators(validators, proof);
+        verifier.updateValidators(validators);
 
         assert(verifier.validators(0) == charleth);
         assertEq(verifier.session(), session + 1);
@@ -158,10 +149,6 @@ contract ECDSAVerifierTest is Test {
         console.log(verifier.validators(1));
 
         console.log("Validators updated successfully!");
-
-        messageHash = keccak256(abi.encode("Hello, World!"));
-        proof = signMessage(messageHash, charlethSecret);
-        assert(verifier.verifySignatures(messageHash, proof));
     }
 
     /// @notice Tests the verification of empty messages, which should fail.
@@ -361,21 +348,12 @@ contract ECDSAVerifierTest is Test {
 
     /// @notice Tests the receive message with update validators command.
     function testReceiveMessageUpdateValidators() external {
-        (, uint256 alithSecret) = makeAddrAndKey("alith");
-        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
-        (address charleth, uint256 charlethSecret) = makeAddrAndKey("charleth");
+        (address charleth, ) = makeAddrAndKey("charleth");
 
         uint256 session = verifier.session();
 
         address[] memory validators = new address[](1);
         validators[0] = charleth;
-        bytes32 messageHash = keccak256(abi.encode(session, validators));
-
-        bytes memory proof = bytes.concat(
-            signMessage(messageHash, charlethSecret),
-            signMessage(messageHash, alithSecret),
-            signMessage(messageHash, baltatharSecret)
-        );
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
@@ -383,7 +361,7 @@ contract ECDSAVerifierTest is Test {
             sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(BOB),
-            data: abi.encode(bytes1(0x01), validators, proof)
+            data: abi.encode(bytes1(0x01), validators)
         });
 
         vm.expectEmit(true, true, true, true);
