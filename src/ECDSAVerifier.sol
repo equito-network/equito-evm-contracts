@@ -272,10 +272,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Adds an address to the noFee list.
     /// @param noFeeAddress The address to be added to the noFee list.
     function _addNoFeeAddress(address noFeeAddress) internal {
-        if (noFeeAddress == address(0)) {
-            revert Errors.InvalidAddress();
-        }
-
         noFee[noFeeAddress] = true;
         emit NoFeeAddressAdded(noFeeAddress);
     }
@@ -283,10 +279,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Removes an address from the noFee list.
     /// @param noFeeAddress The address to be removed from the noFee list.
     function _removeNoFeeAddress(address noFeeAddress) internal {
-        if (noFeeAddress == address(0)) {
-            revert Errors.InvalidAddress();
-        }
-
         noFee[noFeeAddress] = false;
         emit NoFeeAddressRemoved(noFeeAddress);
     }

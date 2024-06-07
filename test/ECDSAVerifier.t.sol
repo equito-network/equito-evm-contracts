@@ -249,14 +249,6 @@ contract ECDSAVerifierTest is Test {
         assertEq(verifier.noFee(ALICE), true, "No fee address not set correctly");
     }
 
-    /// @notice Test adding an invalid address (address(0)) to the noFee list
-    function testAddNoFeeAddressInvalidAddress() public {
-        vm.prank(OWNER);
-        
-        vm.expectRevert(Errors.InvalidAddress.selector);
-        verifier.addNoFeeAddress(address(0));
-    }
-
     /// @notice Test removing an address from the noFee list
     function testRemoveNoFeeAddress() public {
         vm.prank(OWNER);
@@ -266,14 +258,6 @@ contract ECDSAVerifierTest is Test {
         verifier.removeNoFeeAddress(ALICE);
 
         assertEq(verifier.noFee(ALICE), false, "No fee address not removed");
-    }
-
-    /// @notice Test removing an invalid address (address(0)) from the noFee list
-    function testRemoveNoFeeAddressInvalidAddress() public {
-        vm.prank(OWNER);
-        
-        vm.expectRevert(Errors.InvalidAddress.selector);
-        verifier.removeNoFeeAddress(address(0));
     }
 
     /// @notice Tests setting the cost of a message in USD.
