@@ -69,4 +69,10 @@ library Errors {
 
     /// @notice Thrown when a transfer of fees to the liquidity provider fails.
     error TransferFailed();
+
+    /// @notice Thrown when an invalid equito address is provided, such as the zero bytes address.
+    error InvalidEquitoAddress();
+
+    /// @notice Thrown when there is a mismatch in session IDs during validation.
+    error SessionIdMismatch();
 }

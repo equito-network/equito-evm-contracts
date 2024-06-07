@@ -43,23 +43,26 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Event emitted when fees are transferred to the liquidity provider.
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
 
+    /// @notice Event emitted when the equito address is set.
+    event EquitoAddressSet();
+
     /// @notice The Equito Protocol address represented in bytes
-    bytes public eqitoAddress;
+    bytes public equitoAddress;
 
     /// @notice Initializes the contract with the initial validator set and session identifier.
     /// @param _validators The initial list of validator addresses.
     /// @param _session The initial session identifier.
     /// @param _oracle The address of the Oracle contract used to retrieve token prices.
-    constructor(address[] memory _validators, uint256 _session, address _oracle, address _router, bytes memory _eqitoAddress) {
+    constructor(address[] memory _validators, uint256 _session, address _oracle, address _router, bytes memory _equitoAddress) {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
         router = IRouter(_router);
-        eqitoAddress = _eqitoAddress;
+        equitoAddress = _equitoAddress;
     }
     
     modifier onlySovereign(EquitoMessage calldata message) {
-        if (message.sourceChainSelector != 0 || keccak256(message.sender) != keccak256(abi.encode(eqitoAddress))) revert Errors.InvalidSovereign();
+        if (message.sourceChainSelector != 0 || keccak256(message.sender) != keccak256(abi.encode(equitoAddress))) revert Errors.InvalidSovereign();
         _;
     }
 
@@ -86,19 +89,13 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
     /// @notice Updates the list of Validators.
     /// @param _validators The new list of validator addresses.
-    /// @param proof The concatenated ECDSA signatures from the current validators approving the new set.
     function updateValidators(
-        address[] calldata _validators,
-        bytes calldata proof
+        address[] calldata _validators
     ) external {
-        bytes32 hashed = keccak256(abi.encodePacked(session, _validators));
+        validators = _validators;
+        session += 1;
 
-        if (this.verifySignatures(hashed, proof)) {
-            validators = _validators;
-            session += 1;
-
-            emit ValidatorSetUpdated();
-        }
+        emit ValidatorSetUpdated();
     }
 
     /// @notice Verifies that a hashed message has been signed by a sufficient number of Validators.
@@ -191,22 +188,22 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
     function receiveMessage(EquitoMessage calldata message) external override onlySovereign(message) {
-        bytes1 operation = message.data[31];
+        bytes1 operation = message.data[0];
 
         if (operation == 0x01) {
             // Update the validator set
+            uint256 currentSession;
             address[] memory newValidators;
-            bytes memory proof;
-            (, newValidators, proof) = abi.decode(message.data, (bytes32, address[], bytes));
+            (, currentSession, newValidators) = abi.decode(message.data, (bytes32, uint256, address[]));
 
-            uint256 oldSessionNumber = session;
+            if (currentSession != session) revert Errors.SessionIdMismatch();
 
-            this.updateValidators(newValidators, proof);
+            this.updateValidators(newValidators);
          
             router.sendMessage(
-                abi.encode(eqitoAddress), 
+                abi.encode(equitoAddress), 
                 0, 
-                abi.encode(oldSessionNumber, fees[oldSessionNumber])
+                abi.encode(currentSession, fees[currentSession])
             ); 
         } else if (operation == 0x02) {
             // Update the message cost
@@ -215,6 +212,12 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
             _setMessageCostUsd(newMessageCostUsd);
         } else if (operation == 0x03) {
+            // Update the equito address
+            bytes memory newEquitoAddress;
+            (, newEquitoAddress) = abi.decode(message.data, (bytes32, bytes));
+
+            _setEquitoAddress(newEquitoAddress);
+        } else if (operation == 0x04) {
             // Transfer fees to the liquidity provider
             address liquidityProvider;
             uint256 amount;
@@ -266,5 +269,16 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
         messageCostUsd = _messageCostUsd;
         emit MessageCostUsdSet(_messageCostUsd);
+    }
+
+    /// @notice Sets the equitoAddress if it is not zero bytes.
+    /// @param _equitoAddress The new equito address to set.
+    function _setEquitoAddress(bytes memory _equitoAddress) internal {
+         if (_equitoAddress.length == 0) {
+            revert Errors.InvalidEquitoAddress();
+        }
+
+        equitoAddress = _equitoAddress;
+        emit EquitoAddressSet();
     }
 }
