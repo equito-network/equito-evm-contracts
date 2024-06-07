@@ -25,6 +25,8 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     uint256 public messageCostUsd;
     /// @notice Stores the session ID and accumulated fees amount.
     mapping(uint256 => uint256) public fees;
+    /// @notice Stores addresses exempt from paying fees.
+    mapping(address => bool) public noFee;
 
     /// @notice The Oracle contract used to retrieve token prices.
     /// @dev This contract provides token price information required for fee calculation.
@@ -36,15 +38,16 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
     /// @notice Emitted when the validator set is updated.
     event ValidatorSetUpdated();
-
     /// @notice Event emitted when the cost of sending a message in USD is set.
     event MessageCostUsdSet(uint256 newMessageCostUsd);
-
     /// @notice Event emitted when fees are transferred to the liquidity provider.
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
-
     /// @notice Event emitted when the equito address is set.
     event EquitoAddressSet();
+    /// @notice Event emitted when an address is added to the noFee list.
+    event NoFeeAddressAdded(address indexed noFeeAddress);
+    /// @notice Event emitted when an address is removed from the noFee list.
+    event NoFeeAddressRemoved(address indexed noFeeAddress);
 
     /// @notice The Equito Protocol address represented in bytes
     bytes public equitoAddress;
@@ -59,6 +62,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         oracle = IOracle(_oracle);
         router = IRouter(_router);
         equitoAddress = _equitoAddress;
+        noFee[address(this)] = true;
     }
     
     modifier onlySovereign(EquitoMessage calldata message) {
@@ -224,6 +228,18 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             (, liquidityProvider, amount) = abi.decode(message.data, (bytes32, address, uint256));
             
             _transferFees(liquidityProvider, amount);
+        } else if (operation == 0x05) {
+            // Add address to the noFee list
+            address noFeeAddress;
+            (, noFeeAddress) = abi.decode(message.data, (bytes32, address));
+
+            _addNoFeeAddress(noFeeAddress);
+        } else if (operation == 0x06) {
+            // Remove address from the noFee list
+            address noFeeAddress;
+            (, noFeeAddress) = abi.decode(message.data, (bytes32, address));
+
+            _removeNoFeeAddress(noFeeAddress);
         } else {
             revert Errors.InvalidOperation();
         }
@@ -249,9 +265,27 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     
     }
 
+    /// @notice Adds an address to the noFee list.
+    /// @param noFeeAddress The address to be added to the noFee list.
+    function _addNoFeeAddress(address noFeeAddress) internal {
+        noFee[noFeeAddress] = true;
+        emit NoFeeAddressAdded(noFeeAddress);
+    }
+
+    /// @notice Removes an address from the noFee list.
+    /// @param noFeeAddress The address to be removed from the noFee list.
+    function _removeNoFeeAddress(address noFeeAddress) internal {
+        noFee[noFeeAddress] = false;
+        emit NoFeeAddressRemoved(noFeeAddress);
+    }
+
     /// @notice Calculates the fee amount required to send a message based on the current messageCostUsd and tokenPriceUsd from the Oracle.
     /// @return The fee amount in wei.
     function _getFee() internal view returns (uint256) {
+        if (noFee[msg.sender]) {
+            return 0;
+        }
+
         uint256 tokenPriceUsd = oracle.getTokenPriceUsd();
         if (tokenPriceUsd == 0) {
             revert Errors.InvalidTokenPriceFromOracle();
