@@ -203,8 +203,10 @@ contract ECDSAVerifierTest is Test {
         verifier.addNoFeeAddress(ALICE);
 
         vm.prank(ALICE);
-        uint256 noFee = verifier.getFee();
-        assertEq(noFee, 0, "Incorrect fee calculated");
+        assertEq(verifier.getFee(), 0, "Incorrect fee calculated");
+
+        vm.prank(address(verifier));
+        assertEq(verifier.getFee(), 0, "Incorrect fee calculated");
     }
 
     /// @notice Test paying the fee with sufficient amount.
