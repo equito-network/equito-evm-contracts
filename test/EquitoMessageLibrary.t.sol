@@ -12,7 +12,7 @@ contract EquitoMessageLibraryTest is Test {
     address constant BOB = address(0xB0B);
     address constant CHARLIE = address(0xC04);
 
-    /// @dev Tests the _hash function of the EquitoMessageLibrary contract
+    /// @dev Tests the _hash function of the EquitoMessageLibrary contract for a single EquitoMessage
     function testHash() public {
         EquitoMessage memory message1 = EquitoMessage({
             blockNumber: 123,
@@ -69,6 +69,7 @@ contract EquitoMessageLibraryTest is Test {
         assertEq(hash2, expectedHash2, "Hashes should match for message 2");
     }
 
+    /// @notice Tests the _hash function of the EquitoMessageLibrary contract for an array of EquitoMessage
     function testHashArray() public {
         EquitoMessage[] memory messages = new EquitoMessage[](5);
         messages[0] = EquitoMessage({
@@ -116,9 +117,7 @@ contract EquitoMessageLibraryTest is Test {
 
         for (uint256 i = 0; i < messages.length; ) {
             hashes[i] = EquitoMessageLibrary._hash(messages[i]);
-            unchecked {
-                ++i;
-            }
+            unchecked { ++i; }
         }
 
         assertEq(
