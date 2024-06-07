@@ -57,4 +57,22 @@ library Errors {
 
     /// @notice Thrown when the token price retrieved from the oracle is invalid or zero.
     error InvalidTokenPriceFromOracle();
+
+    /// @notice Thrown when a message is received from an invalid sovereign account.
+    error InvalidSovereign();
+
+    /// @notice Thrown when an invalid operation code is encountered in the received message.
+    error InvalidOperation();
+
+    /// @notice Thrown when an invalid liquidity provider address is provided.
+    error InvalidLiquidityProvider();
+
+    /// @notice Thrown when a transfer of fees to the liquidity provider fails.
+    error TransferFailed();
+
+    /// @notice Thrown when an invalid equito address is provided, such as the zero bytes address.
+    error InvalidEquitoAddress();
+
+    /// @notice Thrown when there is a mismatch in session IDs during validation.
+    error SessionIdMismatch();
 }
