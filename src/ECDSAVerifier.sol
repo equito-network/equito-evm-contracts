@@ -171,10 +171,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Retrieves the fee amount required to send a message.
     /// @return The fee amount in wei.
     function getFee() external view returns (uint256) {
-        if (noFee[msg.sender]) {
-            return 0;
-        }
-        
         return _getFee();
     }
 
@@ -286,6 +282,10 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Calculates the fee amount required to send a message based on the current messageCostUsd and tokenPriceUsd from the Oracle.
     /// @return The fee amount in wei.
     function _getFee() internal view returns (uint256) {
+        if (noFee[msg.sender]) {
+            return 0;
+        }
+
         uint256 tokenPriceUsd = oracle.getTokenPriceUsd();
         if (tokenPriceUsd == 0) {
             revert Errors.InvalidTokenPriceFromOracle();
