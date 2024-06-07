@@ -5,19 +5,19 @@ pragma solidity ^0.8.23;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
-import {EquitoMessage} from "./libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage} from "./libraries/EquitoMessageLibrary.sol";
 import {Errors} from "./libraries/Errors.sol";
 import {console} from "forge-std/console.sol";
 
 /// @title EquitoApp
-/// @notice This abstract contract is the base for all applications that want to leverage 
+/// @notice This abstract contract is the base for all applications that want to leverage
 ///         the Equito cross-chain messaging protocol to communicate with other blockchains.
 abstract contract EquitoApp is IEquitoReceiver, Ownable {
     /// @dev The Router Contract that is used to send and receive messages.
     IRouter internal immutable router;
 
     /// @dev Mapping to store peer addresses for different chain IDs.
-    mapping(uint256 => bytes) public peers;
+    mapping(uint256 => bytes64) public peers;
 
     /// @notice Initializes the EquitoApp contract and set the router address.
     /// @param _router The address of the router contract.
@@ -37,7 +37,7 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     /// @notice Allows the owner to set the peer addresses for different chain IDs.
     /// @param chainIds The list of chain IDs.
     /// @param addresses The list of addresses corresponding to the chain IDs.
-    function setPeers(uint256[] calldata chainIds, bytes[] calldata addresses) external onlyOwner {
+    function setPeers(uint256[] calldata chainIds, bytes64[] calldata addresses) external onlyOwner {
         _setPeers(chainIds, addresses);
     }
 
@@ -46,9 +46,8 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     /// @param addresses The list of addresses corresponding to the chain IDs.
     /// @dev This function is internal to allow for easier overriding and extension by derived contracts,
     ///      facilitating the reuse of peer-setting logic in different contexts.
-    function _setPeers(uint256[] calldata chainIds, bytes[] calldata addresses) internal virtual onlyOwner {
-        if (chainIds.length != addresses.length)
-            revert Errors.InvalidLength();
+    function _setPeers(uint256[] calldata chainIds, bytes64[] calldata addresses) internal virtual onlyOwner {
+        if (chainIds.length != addresses.length) revert Errors.InvalidLength();
 
         for (uint256 i = 0; i < chainIds.length; ) {
             peers[chainIds[i]] = addresses[i];
@@ -63,11 +62,16 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     /// @param data The message data.
     /// @return The message ID.
     function sendMessage(
-        bytes calldata receiver,
+        bytes64 calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
     ) external payable returns (bytes32) {
-        return router.sendMessage{value: msg.value}(receiver, destinationChainSelector, data);
+        return
+            router.sendMessage{value: msg.value}(
+                receiver,
+                destinationChainSelector,
+                data
+            );
     }
 
     /// @notice Receives a cross-chain message from the Router Contract.
@@ -75,9 +79,9 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     ///         Only the Router Contract is allowed to call this function.
     /// @param message The Equito message received.
     function receiveMessage(EquitoMessage calldata message) external override onlyRouter {
-        bytes memory peerAddress = peers[message.sourceChainSelector];
+        bytes64 memory peerAddress = peers[message.sourceChainSelector];
 
-        if (peerAddress.length == 0 || keccak256(peerAddress) != keccak256(message.sender)) {
+        if (peerAddress.lower != message.sender.lower || peerAddress.upper != message.sender.upper) {
             _receiveMessageFromNonPeer(message);
         } else {
             _receiveMessageFromPeer(message);

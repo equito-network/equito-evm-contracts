@@ -6,6 +6,7 @@ import "forge-std/StdJson.sol";
 import "forge-std/Script.sol";
 
 import {Router} from "../src/Router.sol";
+import {bytes64} from "../src/libraries/EquitoMessageLibrary.sol";
 
 contract SendMessage is Script {
     using stdJson for string;
@@ -16,7 +17,6 @@ contract SendMessage is Script {
 
     Router public router;
 
-    bytes public receiver = "";
     uint256 public destinationChainSelector = 0;
     bytes public data = abi.encodePacked("Hello, World!");
 
@@ -29,6 +29,8 @@ contract SendMessage is Script {
         console.log("======== Sending message =========");
 
         // Construct parameters
+
+        bytes64 memory receiver = bytes64(bytes32(0), bytes32(0));
 
         router.sendMessage(receiver, destinationChainSelector, data);
 

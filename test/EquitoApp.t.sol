@@ -3,7 +3,7 @@
 pragma solidity ^0.8.23;
 
 import {Test, console} from "forge-std/Test.sol";
-import {EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockEquitoApp} from "./mock/MockEquitoApp.sol";
 import {MockReceiver} from "./mock/MockReceiver.sol";
 import {MockRouter} from "./mock/MockRouter.sol";
@@ -26,13 +26,19 @@ contract EquitoAppTest is Test {
         app = new MockEquitoApp(address(router));
         vm.stopPrank();
     }
-    
+
     function testSendMessage() public {
-        bytes memory receiverAddress = abi.encode(address(app));
+        bytes64 memory receiverAddress = EquitoMessageLibrary.addressToBytes64(
+            address(app)
+        );
         uint256 destinationChainSelector = 2;
         bytes memory data = hex"123456";
 
-        bytes32 messageId = app.sendMessage(receiverAddress, destinationChainSelector, data);
+        bytes32 messageId = app.sendMessage(
+            receiverAddress,
+            destinationChainSelector,
+            data
+        );
 
         assertTrue(messageId != bytes32(0), "Message ID should not be zero");
     }
@@ -44,13 +50,18 @@ contract EquitoAppTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 0,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(address(app)),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
             data: hex"123456"
         });
-        
-        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidRouter.selector, address(ALICE)));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.InvalidRouter.selector,
+                address(ALICE)
+            )
+        );
         app.receiveMessage(message);
     }
 
@@ -63,18 +74,29 @@ contract EquitoAppTest is Test {
         uint256[] memory chainIds = new uint256[](2);
         chainIds[0] = 1;
         chainIds[1] = 2;
-        
-        bytes[] memory addresses = new bytes[](2);
-        addresses[0] = abi.encode(ALICE);
-        addresses[1] = abi.encode(BOB);
+
+        bytes64[] memory addresses = new bytes64[](2);
+        addresses[0] = EquitoMessageLibrary.addressToBytes64(ALICE);
+        addresses[1] = EquitoMessageLibrary.addressToBytes64(BOB);
 
         app.setPeers(chainIds, addresses);
 
-        bytes memory peer1 = app.peers(1);
-        bytes memory peer2 = app.peers(2);
+        (bytes32 peer1Lower, bytes32 peer1Upper) = app.peers(1);
+        (bytes32 peer2Lower, bytes32 peer2Upper) = app.peers(2);
 
-        assertEq(peer1, abi.encode(ALICE), "Peer address for chain 1 should be ALICE");
-        assertEq(peer2, abi.encode(BOB), "Peer address for chain 2 should be BOB");
+        bytes64 memory peer1 = bytes64(peer1Lower, peer1Upper);
+        bytes64 memory peer2 = bytes64(peer2Lower, peer2Upper);
+
+        assertEq(
+            EquitoMessageLibrary.bytes64ToAddress(peer1),
+            ALICE,
+            "Peer address for chain 1 should be ALICE"
+        );
+        assertEq(
+            EquitoMessageLibrary.bytes64ToAddress(peer2),
+            BOB,
+            "Peer address for chain 2 should be BOB"
+        );
     }
 
     /// @dev Tests receiveMessage logic with a valid peer
@@ -83,17 +105,17 @@ contract EquitoAppTest is Test {
         uint256[] memory chainIds = new uint256[](1);
         chainIds[0] = 1;
 
-        bytes[] memory addresses = new bytes[](1);
-        addresses[0] = abi.encode(ALICE);
+        bytes64[] memory addresses = new bytes64[](1);
+        addresses[0] = EquitoMessageLibrary.addressToBytes64(ALICE);
 
         app.setPeers(chainIds, addresses);
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(address(app)),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
             data: hex"123456"
         });
 
@@ -107,9 +129,9 @@ contract EquitoAppTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(BOB),
+            sender: EquitoMessageLibrary.addressToBytes64(BOB),
             destinationChainSelector: 2,
-            receiver: abi.encode(address(app)),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
             data: hex"123456"
         });
 
@@ -123,17 +145,17 @@ contract EquitoAppTest is Test {
         uint256[] memory chainIds = new uint256[](1);
         chainIds[0] = 1;
 
-        bytes[] memory addresses = new bytes[](1);
-        addresses[0] = abi.encode(ALICE);
+        bytes64[] memory addresses = new bytes64[](1);
+        addresses[0] = EquitoMessageLibrary.addressToBytes64(ALICE);
 
         app.setPeers(chainIds, addresses);
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(BOB),
+            sender: EquitoMessageLibrary.addressToBytes64(BOB),
             destinationChainSelector: 2,
-            receiver: abi.encode(address(app)),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
             data: hex"123456"
         });
 

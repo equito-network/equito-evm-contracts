@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.23;
 
-import {EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
 
 /// @title IRouter
 /// @notice Interface for the Router contract, used to interact with the cross-chain messaging protocol.
@@ -34,7 +34,7 @@ interface IRouter {
     /// @param data The message data.
     /// @return The hash of the message.
     function sendMessage(
-        bytes calldata receiver,
+        bytes64 calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
     ) external payable returns (bytes32);
@@ -61,9 +61,7 @@ interface IRouter {
 
     /// @notice Executes the stored messages.
     /// @param messages The list of messages to be executed.
-    function executeMessages(
-        EquitoMessage[] calldata messages
-    ) external;
+    function executeMessages(EquitoMessage[] calldata messages) external;
 
     /// @notice Adds a new verifier to the Router contract.
     /// @param _newVerifier The address of the new verifier.
