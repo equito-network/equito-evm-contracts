@@ -26,6 +26,8 @@ contract ECDSAVerifierTest is Test {
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
     event ValidatorSetUpdated();
     event EquitoAddressSet();
+    event NoFeeAddressAdded(address indexed noFeeAddress);
+    event NoFeeAddressRemoved(address indexed noFeeAddress);
 
     function setUp() public {
         (address alith, ) = makeAddrAndKey("alith");
@@ -189,6 +191,22 @@ contract ECDSAVerifierTest is Test {
         assertEq(fee, expectedFee, "Incorrect fee calculated");
     }
 
+    /// @notice Tests getting the fee for no fee address.
+    function testGetFeeForNoFeeAddress() external {
+        uint256 expectedFee = 1000 / 100;
+        uint256 fee = verifier.getFee();
+        assertEq(fee, expectedFee, "Incorrect fee calculated");
+
+        vm.prank(OWNER);
+        vm.expectEmit(true, true, true, true);
+        emit NoFeeAddressAdded(ALICE);
+        verifier.addNoFeeAddress(ALICE);
+
+        vm.prank(ALICE);
+        uint256 noFee = verifier.getFee();
+        assertEq(noFee, 0, "Incorrect fee calculated");
+    }
+
     /// @notice Test paying the fee with sufficient amount.
     function testPayFeeSuccess() public {
         vm.deal(ALICE, 1 ether);
@@ -216,6 +234,44 @@ contract ECDSAVerifierTest is Test {
 
         vm.expectRevert(Errors.InsufficientFee.selector);
         verifier.payFee{value: insufficientFee}(ALICE);
+    }
+
+    /// @notice Test adding an address to the noFee list
+    function testAddNoFeeAddress() public {
+        vm.prank(OWNER);
+
+        vm.expectEmit(true, true, true, true);
+        emit NoFeeAddressAdded(ALICE);
+        verifier.addNoFeeAddress(ALICE);
+
+        assertEq(verifier.noFee(ALICE), true, "No fee address not set correctly");
+    }
+
+    /// @notice Test adding an invalid address (address(0)) to the noFee list
+    function testAddNoFeeAddressInvalidAddress() public {
+        vm.prank(OWNER);
+        
+        vm.expectRevert(Errors.InvalidAddress.selector);
+        verifier.addNoFeeAddress(address(0));
+    }
+
+    /// @notice Test removing an address from the noFee list
+    function testRemoveNoFeeAddress() public {
+        vm.prank(OWNER);
+
+        vm.expectEmit(true, true, true, true);
+        emit NoFeeAddressRemoved(ALICE);
+        verifier.removeNoFeeAddress(ALICE);
+
+        assertEq(verifier.noFee(ALICE), false, "No fee address not removed");
+    }
+
+    /// @notice Test removing an invalid address (address(0)) from the noFee list
+    function testRemoveNoFeeAddressInvalidAddress() public {
+        vm.prank(OWNER);
+        
+        vm.expectRevert(Errors.InvalidAddress.selector);
+        verifier.removeNoFeeAddress(address(0));
     }
 
     /// @notice Tests setting the cost of a message in USD.
@@ -444,6 +500,52 @@ contract ECDSAVerifierTest is Test {
         assertEq(verifier.equitoAddress(), hex"45717569746f4e6577", "Equito address not set correctly");
     }
 
+    /// @notice Test receiving a message to add an address to the noFee list
+    function testReceiveMessageAddNoFeeAddress() external {
+        vm.prank(OWNER);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(bytes1(0x05), BOB)
+        });
+
+        vm.expectEmit(true, true, true, true);
+        emit NoFeeAddressAdded(BOB);
+        verifier.receiveMessage(message);
+        
+        assertEq(verifier.noFee(BOB), true, "No fee address not set correctly");
+    }
+
+    /// @notice Test receiving a message to remove an address from the noFee list
+    function testReceiveMessageRemoveNoFeeAddress() external {
+        vm.prank(OWNER);
+
+        vm.expectEmit(true, true, true, true);
+        emit NoFeeAddressAdded(BOB);
+        verifier.addNoFeeAddress(BOB);
+        
+        assertEq(verifier.noFee(BOB), true, "No fee address not set correctly");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: abi.encode(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: abi.encode(BOB),
+            data: abi.encode(bytes1(0x06), BOB)
+        });
+
+        vm.expectEmit(true, true, true, true);
+        emit NoFeeAddressRemoved(BOB);
+        verifier.receiveMessage(message);
+        
+        assertEq(verifier.noFee(BOB), false, "No fee address not removed");
+    }
+
     /// @notice Tests the receive message with transfer fees command.
     function testReceiveMessageTransferFees() external {
         uint256 initialAmount = 1 ether;
@@ -484,7 +586,7 @@ contract ECDSAVerifierTest is Test {
             sender: abi.encode(equitoAddress),
             destinationChainSelector: 0,
             receiver: abi.encode(BOB),
-            data: abi.encode(bytes1(0x05))
+            data: abi.encode(bytes1(0x07))
         });
 
         vm.prank(address(router));

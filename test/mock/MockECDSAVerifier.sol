@@ -23,4 +23,11 @@ contract MockECDSAVerifier is ECDSAVerifier {
         _setEquitoAddress(_equitoAddress);
     }
     
+    function addNoFeeAddress(address noFeeAddress) external {
+        _addNoFeeAddress(noFeeAddress);
+    }
+
+    function removeNoFeeAddress(address noFeeAddress) external {
+        _removeNoFeeAddress(noFeeAddress);
+    }
 }
