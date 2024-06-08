@@ -10,7 +10,7 @@ import {CrossChainSwap} from "../src/examples/CrossChainSwap.sol";
 import {MockVerifier} from "./mock/MockVerifier.sol";
 import {MockReceiver} from "./mock/MockReceiver.sol";
 import {MockEquitoFees} from "./mock/MockEquitoFees.sol";
-import {EquitoMessage} from "../src/libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockERC20} from "../src/examples/MockERC20.sol";
 import {Errors} from "../src/libraries/Errors.sol";
 
@@ -29,9 +29,9 @@ contract CrossChainSwapTest is Test {
     address constant OWNER = address(0x03132);
     address constant ALICE = address(0xA11CE);
     address constant BOB = address(0xB0B);
-    
+
     uint256 constant INITIAL_FEE = 0.1 ether;
-    
+
     function setUp() public {
         vm.startPrank(OWNER);
         verifier = new MockVerifier();
@@ -120,9 +120,9 @@ contract CrossChainSwapTest is Test {
     function testCannoSetSwapAddressIfNotOwner() public {
         vm.prank(ALICE);
         uint256[] memory chainSelectors = new uint256[](1);
-        bytes[] memory swapAddresses = new bytes[](1);
+        bytes64[] memory swapAddresses = new bytes64[](1);
         chainSelectors[0] = 1;
-        swapAddresses[0] = abi.encode(address(swap));
+        swapAddresses[0] = EquitoMessageLibrary.addressToBytes64(address(swap));
         vm.expectRevert();
         swap.setSwapAddress(chainSelectors, swapAddresses);
     }
@@ -131,11 +131,14 @@ contract CrossChainSwapTest is Test {
     function testSetSwapAddress() public {
         vm.prank(OWNER);
         uint256[] memory chainSelectors = new uint256[](1);
-        bytes[] memory swapAddresses = new bytes[](1);
+        bytes64[] memory swapAddresses = new bytes64[](1);
         chainSelectors[0] = 1;
-        swapAddresses[0] = abi.encode(address(swap));
+        swapAddresses[0] = EquitoMessageLibrary.addressToBytes64(address(swap));
         swap.setSwapAddress(chainSelectors, swapAddresses);
-        assertEq(swap.peers(1), abi.encode(address(swap)));
+
+        (bytes32 lower, bytes32 upper) = swap.peers(1);
+        assertEq(lower, swapAddresses[0].lower);
+        assertEq(upper, swapAddresses[0].upper);
     }
 
     /// @dev Tests setting swap addresses with invalid length of inputs
@@ -144,10 +147,16 @@ contract CrossChainSwapTest is Test {
         uint256[] memory chainSelectors = new uint256[](2);
         chainSelectors[0] = 1;
         chainSelectors[1] = 2;
-        bytes[] memory swapAddresses = new bytes[](3);
-        swapAddresses[0] = abi.encode(address(0xAAA));
-        swapAddresses[1] = abi.encode(address(0xBBB));
-        swapAddresses[2] = abi.encode(address(0xCCC));
+        bytes64[] memory swapAddresses = new bytes64[](3);
+        swapAddresses[0] = EquitoMessageLibrary.addressToBytes64(
+            address(0xAAA)
+        );
+        swapAddresses[1] = EquitoMessageLibrary.addressToBytes64(
+            address(0xBBB)
+        );
+        swapAddresses[2] = EquitoMessageLibrary.addressToBytes64(
+            address(0xCCC)
+        );
 
         vm.expectRevert(abi.encodeWithSelector(Errors.InvalidLength.selector));
         swap.setSwapAddress(chainSelectors, swapAddresses);
@@ -158,7 +167,9 @@ contract CrossChainSwapTest is Test {
         vm.startPrank(ALICE);
         vm.deal(ALICE, INITIAL_FEE + 1_000);
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientValueSent.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InsufficientValueSent.selector)
+        );
         swap.swap{value: 500}(
             1,
             abi.encode(address(token0)),
@@ -183,9 +194,9 @@ contract CrossChainSwapTest is Test {
         swap.setTokenPrice(chainSelector, destinationToken, price);
 
         uint256[] memory chainSelectors = new uint256[](1);
-        bytes[] memory swapAddresses = new bytes[](1);
+        bytes64[] memory swapAddresses = new bytes64[](1);
         chainSelectors[0] = 1;
-        swapAddresses[0] = abi.encode(address(swap));
+        swapAddresses[0] = EquitoMessageLibrary.addressToBytes64(address(swap));
         swap.setSwapAddress(chainSelectors, swapAddresses);
 
         vm.startPrank(ALICE);
@@ -194,9 +205,9 @@ contract CrossChainSwapTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(address(swap)),
+            sender: EquitoMessageLibrary.addressToBytes64(address(swap)),
             destinationChainSelector: 1,
-            receiver: abi.encode(address(swap)),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(swap)),
             data: abi.encode(
                 CrossChainSwap.TokenAmount({
                     token: abi.encode(address(token0)),
@@ -220,7 +231,7 @@ contract CrossChainSwapTest is Test {
             1_000
         );
         uint256 aliceBalanceAfter = ALICE.balance;
-        
+
         assertEq(aliceBalanceBefore, INITIAL_FEE + 1_000);
         assertEq(aliceBalanceAfter, 0);
 
@@ -249,9 +260,9 @@ contract CrossChainSwapTest is Test {
         swap.setTokenPrice(chainSelector, destinationToken, price);
 
         uint256[] memory chainSelectors = new uint256[](1);
-        bytes[] memory swapAddresses = new bytes[](1);
+        bytes64[] memory swapAddresses = new bytes64[](1);
         chainSelectors[0] = 1;
-        swapAddresses[0] = abi.encode(address(swap));
+        swapAddresses[0] = EquitoMessageLibrary.addressToBytes64(address(swap));
         swap.setSwapAddress(chainSelectors, swapAddresses);
 
         token0.transfer(ALICE, 2_000);
@@ -264,9 +275,9 @@ contract CrossChainSwapTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(address(swap)),
+            sender: EquitoMessageLibrary.addressToBytes64(address(swap)),
             destinationChainSelector: 1,
-            receiver: abi.encode(address(swap)),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(swap)),
             data: abi.encode(
                 CrossChainSwap.TokenAmount({
                     token: abi.encode(nativeToken),
@@ -278,7 +289,7 @@ contract CrossChainSwapTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit IEquitoFees.FeePaid(address(swap), INITIAL_FEE);
-        
+
         vm.expectEmit(true, true, false, true);
         emit IRouter.MessageSendRequested(address(swap), message);
 

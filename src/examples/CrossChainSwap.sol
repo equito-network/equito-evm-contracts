@@ -3,7 +3,7 @@
 pragma solidity ^0.8.23;
 
 import {EquitoApp} from "../EquitoApp.sol";
-import {EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
 import {IRouter} from "../interfaces/IRouter.sol";
 import {TransferHelper} from "../libraries/TransferHelper.sol";
 import {Errors} from "../libraries/Errors.sol";
@@ -74,7 +74,7 @@ contract CrossChainSwap is EquitoApp {
     /// @param swapAddresses The list of swap addresses corresponding to the chain selectors.
     function setSwapAddress(
         uint256[] calldata chainSelectors,
-        bytes[] calldata swapAddresses
+        bytes64[] calldata swapAddresses
     ) external onlyOwner {
         _setPeers(chainSelectors, swapAddresses);
     }
@@ -98,18 +98,11 @@ contract CrossChainSwap is EquitoApp {
     }
 
     /// @notice Handle the received messages from peers.
-    /// In this case, we check if the message comes from a valid sender,
-    /// then we transfer the tokens to the appropriate recipient account.
+    /// Since we know the message comes from a valid sender,
+    /// we transfer the tokens to the appropriate recipient account.
     /// @param message The Equito message received.
     function _receiveMessageFromPeer(EquitoMessage calldata message) internal override {
-        if (
-            message.sender.length !=
-            peers[message.sourceChainSelector].length ||
-            keccak256(message.sender) !=
-            keccak256(peers[message.sourceChainSelector])
-        ) revert Errors.InvalidSender();
-
-        TokenAmount memory tokenAmount = abi.decode(
+          TokenAmount memory tokenAmount = abi.decode(
             message.data,
             (TokenAmount)
         );

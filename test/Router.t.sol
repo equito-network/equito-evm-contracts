@@ -39,7 +39,11 @@ contract RouterTest is Test {
 
     /// @dev Tests the constructor of the Router contract
     function testConstructor() public {
-        assertEq(router.chainSelector(), 1, "Chain selector not initialized correctly");
+        assertEq(
+            router.chainSelector(),
+            1,
+            "Chain selector not initialized correctly"
+        );
     }
 
     // Test sending a message with no Ether
@@ -50,14 +54,20 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientFee.selector));
-        bytes32 messageHash = router.sendMessage(abi.encode(receiver), 1, "Test message");
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InsufficientFee.selector)
+        );
+        bytes32 messageHash = router.sendMessage(
+            EquitoMessageLibrary.addressToBytes64(address(receiver)),
+            1,
+            "Test message"
+        );
     }
 
     /// @dev Tests the sendMessage function of the Router contract
@@ -69,18 +79,22 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
-        
+
         vm.expectEmit(true, true, true, true);
         emit FeePaid(ALICE, INITIAL_FEE);
 
         vm.expectEmit(true, true, true, true);
         emit MessageSendRequested(address(ALICE), message);
-        bytes32 messageHash = router.sendMessage{value: INITIAL_FEE}(abi.encode(receiver), 2, data);
+        bytes32 messageHash = router.sendMessage{value: INITIAL_FEE}(
+            EquitoMessageLibrary.addressToBytes64(address(receiver)),
+            2,
+            data
+        );
         assertEq(EquitoMessageLibrary._hash(message), messageHash);
     }
 
@@ -92,18 +106,20 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
 
-        EquitoMessage[]
-            memory messages = new EquitoMessage[](1);
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
         router.deliverAndExecuteMessages(messages, 0, abi.encode(1));
-        assertTrue(router.isDuplicateMessage(EquitoMessageLibrary._hash(messages[0])), "Message not delivered");
+        assertTrue(
+            router.isDuplicateMessage(EquitoMessageLibrary._hash(messages[0])),
+            "Message not delivered"
+        );
     }
 
     /// @dev Tests delivering and executing of messages with an invalid verifier index
@@ -115,17 +131,18 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
 
-        EquitoMessage[]
-            memory messages = new EquitoMessage[](1);
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector)
+        );
         router.deliverAndExecuteMessages(messages, invalidVerifierIndex, proof);
     }
 
@@ -139,17 +156,18 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
 
-        EquitoMessage[]
-            memory messages = new EquitoMessage[](1);
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidMessagesProof.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InvalidMessagesProof.selector)
+        );
         router.deliverAndExecuteMessages(messages, verifierIndex, invalidProof);
     }
 
@@ -161,9 +179,9 @@ contract RouterTest is Test {
         EquitoMessage memory message1 = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data1
         });
 
@@ -172,14 +190,13 @@ contract RouterTest is Test {
         EquitoMessage memory message2 = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data2
         });
 
-        EquitoMessage[]
-            memory messages = new EquitoMessage[](3);
+        EquitoMessage[] memory messages = new EquitoMessage[](3);
         messages[0] = message1;
         messages[1] = message2;
         messages[2] = message1;
@@ -189,14 +206,18 @@ contract RouterTest is Test {
 
         router.deliverAndExecuteMessages(messages, 0, abi.encode(1));
 
-        assertTrue(router.isDuplicateMessage(message1Hash), "Message not delivered");
-        assertTrue(router.isDuplicateMessage(message2Hash), "Message not delivered");
+        assertTrue(
+            router.isDuplicateMessage(message1Hash),
+            "Message not delivered"
+        );
+        assertTrue(
+            router.isDuplicateMessage(message2Hash),
+            "Message not delivered"
+        );
 
         assertEq(receiver.getMessage().data, message2.data);
     }
 
-    
-    
     /// @dev Tests delivering of messages with a single message successfully
     function testDeliverMessagesSuccess() public {
         vm.prank(ALICE);
@@ -205,14 +226,13 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
 
-        EquitoMessage[]
-            memory messages = new EquitoMessage[](1);
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
         vm.expectEmit(true, true, false, true);
@@ -220,7 +240,10 @@ contract RouterTest is Test {
 
         router.deliverMessages(messages, 0, abi.encode(1));
 
-        assertEq(router.storedMessages(EquitoMessageLibrary._hash(messages[0])), true);
+        assertEq(
+            router.storedMessages(EquitoMessageLibrary._hash(messages[0])),
+            true
+        );
     }
 
     /// @dev Tests delivering and executing of messages with an invalid verifier index
@@ -232,17 +255,18 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
 
-        EquitoMessage[]
-            memory messages = new EquitoMessage[](1);
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector)
+        );
         router.deliverMessages(messages, invalidVerifierIndex, proof);
     }
 
@@ -256,17 +280,18 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
 
-        EquitoMessage[]
-            memory messages = new EquitoMessage[](1);
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidMessagesProof.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InvalidMessagesProof.selector)
+        );
         router.deliverMessages(messages, verifierIndex, invalidProof);
     }
 
@@ -278,14 +303,13 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
 
-        EquitoMessage[]
-            memory messages = new EquitoMessage[](1);
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
         bytes32 messageHash = EquitoMessageLibrary._hash(messages[0]);
@@ -298,8 +322,14 @@ contract RouterTest is Test {
 
         router.executeMessages(messages);
 
-        assertTrue(router.isDuplicateMessage(messageHash), "Message should not be marked as delivered after execution");
-        assertTrue(!router.storedMessages(messageHash), "Message should be deleted after sending");
+        assertTrue(
+            router.isDuplicateMessage(messageHash),
+            "Message should not be marked as delivered after execution"
+        );
+        assertTrue(
+            !router.storedMessages(messageHash),
+            "Message should be deleted after sending"
+        );
     }
 
     /// @dev Tests delivering and executing of messages to delivered for execution
@@ -310,17 +340,20 @@ contract RouterTest is Test {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: abi.encode(ALICE),
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
-            receiver: abi.encode(receiver),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             data: data
         });
 
-        EquitoMessage[]
-            memory messages = new EquitoMessage[](1);
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.MessageNotDeliveredForExecution.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.MessageNotDeliveredForExecution.selector
+            )
+        );
         router.executeMessages(messages);
     }
 
@@ -334,7 +367,11 @@ contract RouterTest is Test {
 
         router.addVerifier(BOB, 0, proof);
 
-        assertEq(address(router.verifiers(1)), BOB, "The new verifier should be BOB");
+        assertEq(
+            address(router.verifiers(1)),
+            BOB,
+            "The new verifier should be BOB"
+        );
     }
 
     /// @dev Tests adding a verifier with an invalid verifier index
@@ -342,7 +379,9 @@ contract RouterTest is Test {
         bytes memory proof = abi.encode("proof");
         uint256 invalidVerifierIndex = 1;
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector)
+        );
         router.addVerifier(address(verifier), invalidVerifierIndex, proof);
     }
 
@@ -351,7 +390,12 @@ contract RouterTest is Test {
         uint256 verifierIndex = 0;
         bytes memory invalidProof = "";
 
-        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidNewVerifierProof.selector, address(verifier)));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.InvalidNewVerifierProof.selector,
+                address(verifier)
+            )
+        );
         router.addVerifier(address(verifier), verifierIndex, invalidProof);
     }
 }
