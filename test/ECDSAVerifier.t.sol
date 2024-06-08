@@ -73,12 +73,12 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(0x05)
+            hashedData: keccak256(abi.encode(0x05))
         });
 
         vm.prank(address(router));
         vm.expectRevert(Errors.InvalidOperation.selector);
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, abi.encode(0x05));
     }
 
     /// @dev Tests the onlySovereign modifier with an invalid sender
@@ -89,12 +89,12 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(0x01)
+            hashedData: keccak256(abi.encode(0x01))
         });
 
         vm.prank(address(router));
         vm.expectRevert(Errors.InvalidSovereign.selector);
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, abi.encode(0x01));
     }
 
     /// @dev Tests the onlySovereign modifier with an invalid chain ID
@@ -105,12 +105,12 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(0x01)
+            hashedData: keccak256(abi.encode(0x01))
         });
 
         vm.prank(address(router));
         vm.expectRevert(Errors.InvalidSovereign.selector);
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, abi.encode(0x01));
     }
 
     /// @dev Helper function to sign a message hash with a given secret key
@@ -138,9 +138,9 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(alith),
             destinationChainSelector: 2,
             receiver: EquitoMessageLibrary.addressToBytes64(alith),
-            data: abi.encode("Hello, World!")
+            hashedData: keccak256(abi.encode("Hello, World!"))
         });
-        bytes32 messageHash = EquitoMessageLibrary._hash(messages[0]);
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
 
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),
@@ -165,7 +165,7 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(alith),
             destinationChainSelector: 2,
             receiver: EquitoMessageLibrary.addressToBytes64(baltathar),
-            data: abi.encode("Message #1")
+            hashedData: keccak256(abi.encode("Message #1"))
         });
         messages[1] = EquitoMessage({
             blockNumber: 2,
@@ -173,7 +173,7 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(baltathar),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(alith),
-            data: abi.encode("Message #2")
+            hashedData: keccak256(abi.encode("Message #2"))            
         });
         messages[2] = EquitoMessage({
             blockNumber: 3,
@@ -181,7 +181,7 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(alith),
             destinationChainSelector: 3,
             receiver: EquitoMessageLibrary.addressToBytes64(charleth),
-            data: abi.encode("Message #3")
+            hashedData: keccak256(abi.encode("Message #3"))
         });
         messages[3] = EquitoMessage({
             blockNumber: 4,
@@ -189,7 +189,7 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(charleth),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(alith),
-            data: abi.encode("Message #5")
+            hashedData: keccak256(abi.encode("Message #4"))
         });
         messages[4] = EquitoMessage({
             blockNumber: 5,
@@ -197,7 +197,7 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(charleth),
             destinationChainSelector: 2,
             receiver: EquitoMessageLibrary.addressToBytes64(alith),
-            data: abi.encode("Message #5")
+            hashedData: keccak256(abi.encode("Message #5"))
         });
         bytes32 messagesHash = keccak256(abi.encode(messages));
 
@@ -535,19 +535,21 @@ contract ECDSAVerifierTest is Test {
         address[] memory validators = new address[](1);
         validators[0] = charleth;
 
+        bytes memory data = abi.encode(bytes1(0x01), 0, validators);
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(bytes1(0x01), 0, validators)
+            hashedData: keccak256(data)
         });
 
         vm.expectEmit(true, true, true, true);
         emit ValidatorSetUpdated();
 
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, data);
 
         assert(verifier.validators(0) == charleth);
         assertEq(verifier.session(), session + 1);
@@ -559,17 +561,19 @@ contract ECDSAVerifierTest is Test {
 
         address[] memory validators = new address[](1);
 
+        bytes memory data = abi.encode(bytes1(0x01), session + 1, validators);
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(bytes1(0x01), session + 1, validators)
+            hashedData: keccak256(data)
         });
 
         vm.expectRevert(Errors.SessionIdMismatch.selector);
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, data);
     }
 
     /// @notice Tests the receive message with set message cost usd command.
@@ -586,18 +590,20 @@ contract ECDSAVerifierTest is Test {
             "Message cost USD not set correctly"
         );
 
+        bytes memory data = abi.encode(bytes1(0x02), 0.5 ether);
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(bytes1(0x02), 0.5 ether)
+            hashedData: keccak256(data)
         });
 
         vm.expectEmit(true, true, true, true);
         emit MessageCostUsdSet(0.5 ether);
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, data);
 
         assertEq(
             verifier.messageCostUsd(),
@@ -612,18 +618,20 @@ contract ECDSAVerifierTest is Test {
             address(0xbeef)
         );
 
+        bytes memory data = abi.encode(bytes1(0x03), newEquitoAddress);
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(bytes1(0x03), newEquitoAddress)
+            hashedData: keccak256(data)
         });
 
         vm.expectEmit(true, true, true, true);
         emit EquitoAddressSet();
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, data);
 
         (bytes32 lower, bytes32 upper) = verifier.equitoAddress();
 
@@ -636,18 +644,20 @@ contract ECDSAVerifierTest is Test {
     function testReceiveMessageAddNoFeeAddress() external {
         vm.prank(OWNER);
 
+        bytes memory data = abi.encode(bytes1(0x05), BOB);
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(bytes1(0x05), BOB)
+            hashedData: keccak256(data)
         });
 
         vm.expectEmit(true, true, true, true);
         emit NoFeeAddressAdded(BOB);
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, data);
         
         assertEq(verifier.noFee(BOB), true, "No fee address not set correctly");
     }
@@ -662,18 +672,20 @@ contract ECDSAVerifierTest is Test {
         
         assertEq(verifier.noFee(BOB), true, "No fee address not set correctly");
 
+        bytes memory data = abi.encode(bytes1(0x06), BOB);
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(bytes1(0x06), BOB)
+            hashedData: keccak256(data)
         });
 
         vm.expectEmit(true, true, true, true);
         emit NoFeeAddressRemoved(BOB);
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, data);
         
         assertEq(verifier.noFee(BOB), false, "No fee address not removed");
     }
@@ -696,19 +708,21 @@ contract ECDSAVerifierTest is Test {
             "Verifier balance mismatch after fee payment"
         );
 
+        bytes memory data = abi.encode(bytes1(0x04), liquidityProvider, transferAmount);
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(liquidityProvider),
-            data: abi.encode(bytes1(0x04), liquidityProvider, transferAmount)
+            hashedData: keccak256(data)
         });
 
         vm.prank(address(verifier));
         vm.expectEmit(true, true, true, true);
         emit FeesTransferred(liquidityProvider, session, transferAmount);
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, data);
 
         assertEq(
             address(verifier).balance,
@@ -730,11 +744,11 @@ contract ECDSAVerifierTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            data: abi.encode(bytes1(0x07))
+            hashedData: keccak256(abi.encode(bytes1(0x07)))
         });
 
         vm.prank(address(router));
         vm.expectRevert(Errors.InvalidOperation.selector);
-        verifier.receiveMessage(message);
+        verifier.receiveMessage(message, abi.encode(bytes1(0x07)));
     }
 }

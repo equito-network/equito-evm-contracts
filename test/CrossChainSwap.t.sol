@@ -202,26 +202,26 @@ contract CrossChainSwapTest is Test {
         vm.startPrank(ALICE);
         vm.deal(ALICE, INITIAL_FEE + 1_000);
 
+        CrossChainSwap.TokenAmount memory data = CrossChainSwap.TokenAmount({
+            token: abi.encode(address(token0)),
+            amount: 500,
+            recipient: abi.encode(BOB)
+        });
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
             sender: EquitoMessageLibrary.addressToBytes64(address(swap)),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(swap)),
-            data: abi.encode(
-                CrossChainSwap.TokenAmount({
-                    token: abi.encode(address(token0)),
-                    amount: 500,
-                    recipient: abi.encode(BOB)
-                })
-            )
+            hashedData: keccak256(abi.encode(data))
         });
 
         vm.expectEmit(true, true, false, true);
         emit IEquitoFees.FeePaid(address(swap), INITIAL_FEE);
 
         vm.expectEmit(true, true, false, true);
-        emit IRouter.MessageSendRequested(address(swap), message);
+        emit IRouter.MessageSendRequested(message, abi.encode(data));
 
         uint256 aliceBalanceBefore = ALICE.balance;
         swap.swap{value: INITIAL_FEE + 1_000}(
@@ -238,7 +238,9 @@ contract CrossChainSwapTest is Test {
         uint256 bobBalanceBefore = token0.balanceOf(BOB);
         EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
-        router.deliverAndExecuteMessages(messages, 0, bytes("0"));
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = abi.encode(data);
+        router.deliverAndExecuteMessages(messages, messageData, 0, bytes("0"));
         uint256 bobBalanceAfter = token0.balanceOf(BOB);
         assertEq(bobBalanceBefore, 0);
         assertEq(bobBalanceAfter, 500);
@@ -272,26 +274,26 @@ contract CrossChainSwapTest is Test {
 
         token0.approve(address(swap), 1_000);
 
+        CrossChainSwap.TokenAmount memory data = CrossChainSwap.TokenAmount({
+            token: abi.encode(nativeToken),
+            amount: 2_000,
+            recipient: abi.encode(BOB)
+        });
+
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
             sender: EquitoMessageLibrary.addressToBytes64(address(swap)),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(swap)),
-            data: abi.encode(
-                CrossChainSwap.TokenAmount({
-                    token: abi.encode(nativeToken),
-                    amount: 2_000,
-                    recipient: abi.encode(BOB)
-                })
-            )
+            hashedData: keccak256(abi.encode(data))
         });
 
         vm.expectEmit(true, true, false, true);
         emit IEquitoFees.FeePaid(address(swap), INITIAL_FEE);
 
         vm.expectEmit(true, true, false, true);
-        emit IRouter.MessageSendRequested(address(swap), message);
+        emit IRouter.MessageSendRequested(message, abi.encode(data));
 
         uint256 aliceBalanceBefore = token0.balanceOf(ALICE);
         swap.swap{value: INITIAL_FEE}(
@@ -308,7 +310,9 @@ contract CrossChainSwapTest is Test {
         uint256 bobBalanceBefore = BOB.balance;
         EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = message;
-        router.deliverAndExecuteMessages(messages, 0, bytes("0"));
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = abi.encode(data);
+        router.deliverAndExecuteMessages(messages, messageData, 0, bytes("0"));
         uint256 bobBalanceAfter = BOB.balance;
         assertEq(bobBalanceBefore, 0);
         assertEq(bobBalanceAfter, 2000);

@@ -98,9 +98,9 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         if (messages.length == 0) return false;
 
         if (messages.length == 1) {
-            return this.verifySignatures(EquitoMessageLibrary._hash(messages[0]), proof);
+            return this.verifySignatures(keccak256(abi.encode(messages[0])), proof);
         } else {
-            return this.verifySignatures(EquitoMessageLibrary._hash(messages), proof);
+            return this.verifySignatures(keccak256(abi.encode(messages)), proof);
         }
     }
 
@@ -201,14 +201,18 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
-    function receiveMessage(EquitoMessage calldata message) external override onlySovereign(message) {
-        bytes1 operation = message.data[0];
+    /// @param messageData The data of the message received.
+    function receiveMessage(
+        EquitoMessage calldata message,
+        bytes calldata messageData
+    ) external override onlySovereign(message) {
+        bytes1 operation = messageData[0];
 
         if (operation == 0x01) {
             // Update the validator set
             uint256 currentSession;
             address[] memory newValidators;
-            (, currentSession, newValidators) = abi.decode(message.data, (bytes32, uint256, address[]));
+            (, currentSession, newValidators) = abi.decode(messageData, (bytes32, uint256, address[]));
 
             if (currentSession != session) revert Errors.SessionIdMismatch();
 
@@ -223,7 +227,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             // Update the message cost
             uint256 newMessageCostUsd;
             (, newMessageCostUsd) = abi.decode(
-                message.data,
+                messageData,
                 (bytes32, uint256)
             );
 
@@ -231,26 +235,26 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         } else if (operation == 0x03) {
             // Update the equito address
             bytes64 memory newEquitoAddress;
-            (, newEquitoAddress) = abi.decode(message.data, (bytes32, bytes64));
+            (, newEquitoAddress) = abi.decode(messageData, (bytes32, bytes64));
 
             _setEquitoAddress(newEquitoAddress);
         } else if (operation == 0x04) {
             // Transfer fees to the liquidity provider
             address liquidityProvider;
             uint256 amount;
-            (, liquidityProvider, amount) = abi.decode(message.data, (bytes32, address, uint256));
+            (, liquidityProvider, amount) = abi.decode(messageData, (bytes32, address, uint256));
 
             _transferFees(liquidityProvider, amount);
         } else if (operation == 0x05) {
             // Add address to the noFee list
             address noFeeAddress;
-            (, noFeeAddress) = abi.decode(message.data, (bytes32, address));
+            (, noFeeAddress) = abi.decode(messageData, (bytes32, address));
 
             _addNoFeeAddress(noFeeAddress);
         } else if (operation == 0x06) {
             // Remove address from the noFee list
             address noFeeAddress;
-            (, noFeeAddress) = abi.decode(message.data, (bytes32, address));
+            (, noFeeAddress) = abi.decode(messageData, (bytes32, address));
 
             _removeNoFeeAddress(noFeeAddress);
         } else {
