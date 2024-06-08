@@ -9,15 +9,15 @@ import {Router} from "../src/Router.sol";
 import {ECDSAVerifier} from "../src/ECDSAVerifier.sol";
 import {IEquitoFees} from "../src/interfaces/IEquitoFees.sol";
 import {IOracle} from "../src/interfaces/IOracle.sol";
+import {EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 
 /// This script is used to deploy the Router contract using the configuration determined by the env file.
 contract DeployRouter is Script {
     using stdJson for string;
 
-    uint256 public deployPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
     uint256 public chainSelector = vm.envUint("CHAIN_SELECTOR");
-    address public deployerAddress = vm.rememberKey(deployPrivateKey);
     string public outputFilename = vm.envString("OUTPUT_FILENAME");
+    address public equitoAddress = vm.envAddress("EQUITO_ADDRESS");
 
     ECDSAVerifier public verifier;
     Router public router;
@@ -31,7 +31,7 @@ contract DeployRouter is Script {
         string memory root = vm.projectRoot();
         string memory basePath = string.concat(root, "/script/deployment/");
         // start broadcasting transactions
-        vm.startBroadcast(deployerAddress);
+        vm.startBroadcast();
 
         address[] memory validators = new address[](3);
         validators[0] = ALITH;
@@ -39,11 +39,23 @@ contract DeployRouter is Script {
         validators[2] = CHARLETH;
 
         console.log("======== Deploying ECDSAVerifier Verifier =========");
-        verifier = new ECDSAVerifier(validators, 0, address(oracle), hex"45717569746f");
-        console.log("Deployed ECDSAVerifier Verifier successfully =>", address(verifier));
+        verifier = new ECDSAVerifier(
+            validators,
+            0,
+            address(oracle),
+            EquitoMessageLibrary.addressToBytes64(equitoAddress)
+        );
+        console.log(
+            "Deployed ECDSAVerifier Verifier successfully =>",
+            address(verifier)
+        );
 
         console.log("======== Deploying Router =========");
-        router = new Router(chainSelector, address(verifier), address(verifier));
+        router = new Router(
+            chainSelector,
+            address(verifier),
+            address(verifier)
+        );
         console.log("Deployed Router successfully =>", address(router));
 
         console.log("======== Setting Router in ECDSAVerifier =========");

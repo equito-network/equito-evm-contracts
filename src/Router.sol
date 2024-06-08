@@ -6,7 +6,7 @@ import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {IEquitoVerifier} from "./interfaces/IEquitoVerifier.sol";
 import {IEquitoFees} from "./interfaces/IEquitoFees.sol";
-import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
 import {Errors} from "./libraries/Errors.sol";
 
 /// @title Router
@@ -52,7 +52,7 @@ contract Router is IRouter {
     /// @param data The message data.
     /// @return The hash of the message.
     function sendMessage(
-        bytes calldata receiver,
+        bytes64 calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
     ) external payable returns (bytes32) {
@@ -61,12 +61,12 @@ contract Router is IRouter {
         EquitoMessage memory newMessage = EquitoMessage({
             blockNumber: block.number,
             sourceChainSelector: chainSelector,
-            sender: abi.encode(msg.sender),
+            sender: EquitoMessageLibrary.addressToBytes64(msg.sender),
             destinationChainSelector: destinationChainSelector,
             receiver: receiver,
             data: data
         });
-        
+
         emit MessageSendRequested(msg.sender, newMessage);
 
         return EquitoMessageLibrary._hash(newMessage);
@@ -93,7 +93,7 @@ contract Router is IRouter {
             bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
 
             if (!isDuplicateMessage[messageHash]) {
-                address receiver = abi.decode(messages[i].receiver, (address));
+                address receiver = EquitoMessageLibrary.bytes64ToAddress(messages[i].receiver);
                 IEquitoReceiver(receiver).receiveMessage(messages[i]);
                 isDuplicateMessage[messageHash] = true;
             }
@@ -143,7 +143,7 @@ contract Router is IRouter {
             bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
 
             if (storedMessages[messageHash] && !isDuplicateMessage[messageHash]) {
-                address receiver = abi.decode(messages[i].receiver, (address));
+                address receiver = EquitoMessageLibrary.bytes64ToAddress(messages[i].receiver);
                 IEquitoReceiver(receiver).receiveMessage(messages[i]);
                 isDuplicateMessage[messageHash] = true;
                 delete storedMessages[messageHash];
@@ -172,7 +172,7 @@ contract Router is IRouter {
             revert Errors.InvalidVerifierIndex();
         }
 
-        if (verifiers[verifierIndex].verifySignatures(keccak256(abi.encode(_newVerifier)), proof)) {
+        if (verifiers[verifierIndex].verifySignatures(keccak256(abi.encodePacked(_newVerifier)), proof)) {
             verifiers.push(IEquitoVerifier(_newVerifier));
             emit VerifierAdded(_newVerifier);
         } else {

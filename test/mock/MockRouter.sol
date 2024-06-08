@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {IRouter} from "../../src/Router.sol";
 import {IEquitoFees} from "../../src/interfaces/IEquitoFees.sol";
-import {EquitoMessage} from "../../src/libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage} from "../../src/libraries/EquitoMessageLibrary.sol";
 import {IEquitoVerifier} from "../../src/interfaces/IEquitoVerifier.sol";
 
 contract MockRouter is IRouter {
@@ -17,19 +17,13 @@ contract MockRouter is IRouter {
     IEquitoFees public equitoFees;
 
     function sendMessage(
-        bytes calldata receiver,
+        bytes64 calldata receiver,
         uint256 destinationChainSelector,
         bytes calldata data
-    ) external override payable returns (bytes32) {
-        return keccak256(
-                abi.encode(
-                    receiver,
-                    destinationChainSelector,
-                    data
-                )
-            );
+    ) external payable override returns (bytes32) {
+        return keccak256(abi.encode(receiver, destinationChainSelector, data));
     }
-    
+
     function deliverAndExecuteMessages(
         EquitoMessage[] calldata messages,
         uint256 verifierIndex,
@@ -42,9 +36,7 @@ contract MockRouter is IRouter {
         bytes calldata proof
     ) external {}
 
-    function executeMessages(
-        EquitoMessage[] calldata messages
-    ) external {}
+    function executeMessages(EquitoMessage[] calldata messages) external {}
 
     function addVerifier(
         address _newVerifier,

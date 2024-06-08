@@ -6,7 +6,7 @@ import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoFees} from "./interfaces/IEquitoFees.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
-import {EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
 import {Errors} from "./libraries/Errors.sol";
 
 /// @title ECDSAVerifier
@@ -49,24 +49,32 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Event emitted when an address is removed from the noFee list.
     event NoFeeAddressRemoved(address indexed noFeeAddress);
 
-    /// @notice The Equito Protocol address represented in bytes
-    bytes public equitoAddress;
+    /// @notice The Equito Protocol address, represented in bytes64.
+    bytes64 public equitoAddress;
 
     /// @notice Initializes the contract with the initial validator set and session identifier.
     /// @param _validators The initial list of validator addresses.
     /// @param _session The initial session identifier.
     /// @param _oracle The address of the Oracle contract used to retrieve token prices.
-    /// @param _equitoAddress The Equito address represented in bytes.
-    constructor(address[] memory _validators, uint256 _session, address _oracle, bytes memory _equitoAddress) {
+    constructor(
+        address[] memory _validators,
+        uint256 _session,
+        address _oracle,
+        bytes64 memory _equitoAddress
+    ) {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
         equitoAddress = _equitoAddress;
         noFee[address(this)] = true;
     }
-    
+
     modifier onlySovereign(EquitoMessage calldata message) {
-        if (message.sourceChainSelector != 0 || keccak256(message.sender) != keccak256(abi.encode(equitoAddress))) revert Errors.InvalidSovereign();
+        if (
+            message.sourceChainSelector != 0 ||
+            message.sender.lower != equitoAddress.lower ||
+            message.sender.upper != equitoAddress.upper
+        ) revert Errors.InvalidSovereign();
         _;
     }
 
@@ -89,22 +97,16 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     ) external view override returns (bool) {
         if (messages.length == 0) return false;
 
-        bytes32 hashed;
         if (messages.length == 1) {
-            hashed = EquitoMessageLibrary._hash(messages[0]);
+            return this.verifySignatures(EquitoMessageLibrary._hash(messages[0]), proof);
         } else {
-            // TODO: use a more efficient way to hash multiple messages
-            hashed = keccak256(abi.encode(messages));
+            return this.verifySignatures(EquitoMessageLibrary._hash(messages), proof);
         }
-
-        return this.verifySignatures(hashed, proof);
     }
 
     /// @notice Updates the list of Validators.
     /// @param _validators The new list of validator addresses.
-    function updateValidators(
-        address[] calldata _validators
-    ) external {
+    function updateValidators(address[] calldata _validators) external {
         validators = _validators;
         session += 1;
 
@@ -197,7 +199,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         emit FeePaid(payer, msg.value);
     }
 
-
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
     function receiveMessage(EquitoMessage calldata message) external override onlySovereign(message) {
@@ -212,22 +213,25 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             if (currentSession != session) revert Errors.SessionIdMismatch();
 
             this.updateValidators(newValidators);
-         
+
             router.sendMessage(
-                abi.encode(equitoAddress), 
-                0, 
+                equitoAddress,
+                0,
                 abi.encode(currentSession, fees[currentSession])
-            ); 
+            );
         } else if (operation == 0x02) {
             // Update the message cost
             uint256 newMessageCostUsd;
-            (, newMessageCostUsd) = abi.decode(message.data, (bytes32, uint256));
+            (, newMessageCostUsd) = abi.decode(
+                message.data,
+                (bytes32, uint256)
+            );
 
             _setMessageCostUsd(newMessageCostUsd);
         } else if (operation == 0x03) {
             // Update the equito address
-            bytes memory newEquitoAddress;
-            (, newEquitoAddress) = abi.decode(message.data, (bytes32, bytes));
+            bytes64 memory newEquitoAddress;
+            (, newEquitoAddress) = abi.decode(message.data, (bytes32, bytes64));
 
             _setEquitoAddress(newEquitoAddress);
         } else if (operation == 0x04) {
@@ -235,7 +239,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             address liquidityProvider;
             uint256 amount;
             (, liquidityProvider, amount) = abi.decode(message.data, (bytes32, address, uint256));
-            
+
             _transferFees(liquidityProvider, amount);
         } else if (operation == 0x05) {
             // Add address to the noFee list
@@ -269,9 +273,8 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
         (bool success, ) = payable(liquidityProvider).call{value: transferAmount}("");
         if (!success) revert Errors.TransferFailed();
-        
+
         emit FeesTransferred(liquidityProvider, session, transferAmount);
-    
     }
 
     /// @notice Adds an address to the noFee list.
@@ -316,11 +319,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
     /// @notice Sets the equitoAddress if it is not zero bytes.
     /// @param _equitoAddress The new equito address to set.
-    function _setEquitoAddress(bytes memory _equitoAddress) internal {
-         if (_equitoAddress.length == 0) {
-            revert Errors.InvalidEquitoAddress();
-        }
-
+    function _setEquitoAddress(bytes64 memory _equitoAddress) internal {
         equitoAddress = _equitoAddress;
         emit EquitoAddressSet();
     }
