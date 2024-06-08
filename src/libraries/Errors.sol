@@ -75,4 +75,7 @@ library Errors {
 
     /// @notice Thrown when there is a mismatch in session IDs during validation.
     error SessionIdMismatch();
+
+    /// @notice Thrown when attempting to set the router, but the router is already set.
+    error RouterAlreadySet();
 }

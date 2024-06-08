@@ -42,9 +42,18 @@ contract ECDSAVerifierTest is Test {
         vm.startPrank(OWNER);
         oracle = new MockOracle();
         router = new MockRouter();
-        verifier = new MockECDSAVerifier(validators, 0, address(oracle), address(router), equitoAddress);
+        verifier = new MockECDSAVerifier(validators, 0, address(oracle), equitoAddress);
+        verifier.setRouter(address(router));
         verifier.setMessageCostUsd(1000);
         vm.stopPrank();
+    }
+
+    /// @dev Tests setting a router
+    function testSetRouter() public {
+        vm.prank(OWNER);
+
+        vm.expectRevert(Errors.RouterAlreadySet.selector);
+        verifier.setRouter(ALICE);
     }
 
     /// @dev Tests the onlySovereign modifier with a valid message

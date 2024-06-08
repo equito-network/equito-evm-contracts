@@ -56,11 +56,11 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @param _validators The initial list of validator addresses.
     /// @param _session The initial session identifier.
     /// @param _oracle The address of the Oracle contract used to retrieve token prices.
-    constructor(address[] memory _validators, uint256 _session, address _oracle, address _router, bytes memory _equitoAddress) {
+    /// @param _equitoAddress The Equito address represented in bytes.
+    constructor(address[] memory _validators, uint256 _session, address _oracle, bytes memory _equitoAddress) {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
-        router = IRouter(_router);
         equitoAddress = _equitoAddress;
         noFee[address(this)] = true;
     }
@@ -68,6 +68,15 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     modifier onlySovereign(EquitoMessage calldata message) {
         if (message.sourceChainSelector != 0 || keccak256(message.sender) != keccak256(abi.encode(equitoAddress))) revert Errors.InvalidSovereign();
         _;
+    }
+
+    /// @notice Sets the Router contract used to send cross-chain messages.
+    /// @param _router The address of the Router contract.
+    function setRouter(address _router) external {
+        if (address(router) != address(0)) {
+            revert Errors.RouterAlreadySet();
+        }
+        router = IRouter(_router);
     }
 
     /// @notice Verifies that a set of `EquitoMessage` instances have been signed by a sufficient number of Validators.
