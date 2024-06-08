@@ -101,9 +101,12 @@ contract CrossChainSwap is EquitoApp {
     /// Since we know the message comes from a valid sender,
     /// we transfer the tokens to the appropriate recipient account.
     /// @param message The Equito message received.
-    function _receiveMessageFromPeer(EquitoMessage calldata message) internal override {
-          TokenAmount memory tokenAmount = abi.decode(
-            message.data,
+    function _receiveMessageFromPeer(
+        EquitoMessage calldata message, 
+        bytes calldata messageData
+    ) internal override {
+        TokenAmount memory tokenAmount = abi.decode(
+            messageData,
             (TokenAmount)
         );
 

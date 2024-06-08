@@ -26,6 +26,7 @@ contract MockRouter is IRouter {
 
     function deliverAndExecuteMessages(
         EquitoMessage[] calldata messages,
+        bytes[] calldata messageData,
         uint256 verifierIndex,
         bytes calldata proof
     ) external {}
@@ -36,7 +37,10 @@ contract MockRouter is IRouter {
         bytes calldata proof
     ) external {}
 
-    function executeMessages(EquitoMessage[] calldata messages) external {}
+    function executeMessages(
+        EquitoMessage[] calldata messages,
+        bytes[] calldata messageData
+    ) external {}
 
     function addVerifier(
         address _newVerifier,

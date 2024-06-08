@@ -24,8 +24,8 @@ struct EquitoMessage {
     uint256 destinationChainSelector;
     /// @notice Address of the receiver.
     bytes64 receiver;
-    /// @notice Encoded payload of the message to be delivered.
-    bytes data;
+    /// @notice Hash of the payload of the message to be delivered.
+    bytes32 hashedData;
 }
 
 /// @title EquitoMessageLibrary
@@ -37,10 +37,7 @@ library EquitoMessageLibrary {
     /// @return The bytes64 struct containing the address.
     /// @dev The upper bytes32 value is set to 0. This operation cannot fail.
     function addressToBytes64(address addr) internal pure returns (bytes64 memory) {
-        return bytes64(
-            bytes32(uint256(uint160(addr))), 
-            bytes32(0)
-        );
+        return bytes64(bytes32(uint256(uint160(addr))), bytes32(0));
     }
 
     /// @notice Converts a bytes64 struct to an address.
@@ -73,7 +70,7 @@ library EquitoMessageLibrary {
                     original.sender.upper,
                     original.receiver.lower,
                     original.receiver.upper,
-                    keccak256(original.data)
+                    original.hashedData
                 )
             );
     }

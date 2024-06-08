@@ -53,7 +53,7 @@ contract EquitoAppTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
             receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
-            data: hex"123456"
+            hashedData: keccak256(hex"123456")
         });
 
         vm.expectRevert(
@@ -62,7 +62,7 @@ contract EquitoAppTest is Test {
                 address(ALICE)
             )
         );
-        app.receiveMessage(message);
+        app.receiveMessage(message, hex"123456");
     }
 
     /// @dev Tests the functionality of the setPeers function in EquitoApp contract.
@@ -116,11 +116,11 @@ contract EquitoAppTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
             destinationChainSelector: 2,
             receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
-            data: hex"123456"
+            hashedData: keccak256(hex"123456")
         });
 
         vm.prank(address(router));
-        app.receiveMessage(message);
+        app.receiveMessage(message, hex"123456");
     }
 
     /// @dev Tests the `receiveMessage` function when the peer address is zero.
@@ -132,11 +132,11 @@ contract EquitoAppTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(BOB),
             destinationChainSelector: 2,
             receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
-            data: hex"123456"
+            hashedData: keccak256(hex"123456")
         });
 
         vm.expectRevert(Errors.InvalidMessageSender.selector);
-        app.receiveMessage(message);
+        app.receiveMessage(message, hex"123456");
     }
 
     /// @dev Tests the `receiveMessage` function when the sender address is not equal to the expected peer address.
@@ -156,11 +156,11 @@ contract EquitoAppTest is Test {
             sender: EquitoMessageLibrary.addressToBytes64(BOB),
             destinationChainSelector: 2,
             receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
-            data: hex"123456"
+            hashedData: keccak256(hex"123456")
         });
 
         vm.prank(address(router));
         vm.expectRevert(Errors.InvalidMessageSender.selector);
-        app.receiveMessage(message);
+        app.receiveMessage(message, hex"123456");
     }
 }

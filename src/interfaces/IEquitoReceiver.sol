@@ -9,5 +9,6 @@ import {EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
 interface IEquitoReceiver {
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
-    function receiveMessage(EquitoMessage calldata message) external;
+    /// @param messageData The data of the message.
+    function receiveMessage(EquitoMessage calldata message, bytes calldata messageData) external;
 }

@@ -78,24 +78,36 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     ///         It is a wrapper function for the `_receiveMessage` function, that needs to be overridden.
     ///         Only the Router Contract is allowed to call this function.
     /// @param message The Equito message received.
-    function receiveMessage(EquitoMessage calldata message) external override onlyRouter {
+    /// @param messageData The data of the message received.
+    function receiveMessage(
+        EquitoMessage calldata message,
+        bytes calldata messageData
+    ) external override onlyRouter {
         bytes64 memory peerAddress = peers[message.sourceChainSelector];
 
         if (peerAddress.lower != message.sender.lower || peerAddress.upper != message.sender.upper) {
-            _receiveMessageFromNonPeer(message);
+            _receiveMessageFromNonPeer(message, messageData);
         } else {
-            _receiveMessageFromPeer(message);
+            _receiveMessageFromPeer(message, messageData);
         }
     }
 
     /// @notice The logic for receiving a cross-chain message from a peer.
     /// @param message The Equito message received.
-    function _receiveMessageFromPeer(EquitoMessage calldata message) internal virtual;
+    /// @param messageData The data of the message received.
+    function _receiveMessageFromPeer(
+        EquitoMessage calldata message,
+        bytes calldata messageData
+    ) internal virtual {}
 
     /// @notice The logic for receiving a cross-chain message from a non-peer.
     ///         The default implementation reverts the transaction.
     /// @param message The Equito message received.
-    function _receiveMessageFromNonPeer(EquitoMessage calldata message) internal virtual {
+    /// @param messageData The data of the message received.
+    function _receiveMessageFromNonPeer(
+        EquitoMessage calldata message,
+        bytes calldata messageData    
+    ) internal virtual {
         revert Errors.InvalidMessageSender();
     }
 }

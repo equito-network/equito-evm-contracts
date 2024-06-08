@@ -8,9 +8,9 @@ import {bytes64, EquitoMessage} from "../libraries/EquitoMessageLibrary.sol";
 /// @notice Interface for the Router contract, used to interact with the cross-chain messaging protocol.
 interface IRouter {
     /// @notice Emitted when a message send request is created.
-    /// @param sender The sender of the message.
     /// @param message The message being sent.
-    event MessageSendRequested(address indexed sender, EquitoMessage message);
+    /// @param messageData The data of the message being sent.
+    event MessageSendRequested(EquitoMessage message, bytes messageData);
 
     /// @notice Emitted when messages are delivered to their destination.
     /// @param messages The list of messages that were delivered.
@@ -40,11 +40,13 @@ interface IRouter {
     ) external payable returns (bytes32);
 
     /// @notice Routes messages to the appropriate receiver contracts.
-    /// @param messages The list of messages to be routed.
+    /// @param messages The list of messages to be delivered and executed.
+    /// @param messageData The data of the messages to be delivered and executed.
     /// @param verifierIndex The index of the verifier used to verify the messages.
     /// @param proof The proof provided by the verifier.
     function deliverAndExecuteMessages(
         EquitoMessage[] calldata messages,
+        bytes[] calldata messageData,
         uint256 verifierIndex,
         bytes calldata proof
     ) external;
@@ -61,7 +63,11 @@ interface IRouter {
 
     /// @notice Executes the stored messages.
     /// @param messages The list of messages to be executed.
-    function executeMessages(EquitoMessage[] calldata messages) external;
+    /// @param messageData The data of the messages to be executed.
+    function executeMessages(
+        EquitoMessage[] calldata messages,
+        bytes[] calldata messageData
+    ) external;
 
     /// @notice Adds a new verifier to the Router contract.
     /// @param _newVerifier The address of the new verifier.
