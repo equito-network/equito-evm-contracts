@@ -50,11 +50,19 @@ contract ECDSAVerifierTest is Test {
             validators,
             0,
             address(oracle),
-            address(router),
             EquitoMessageLibrary.addressToBytes64(equitoAddress)
         );
+        verifier.setRouter(address(router));
         verifier.setMessageCostUsd(1000);
         vm.stopPrank();
+    }
+
+    /// @dev Tests setting a router
+    function testSetRouter() public {
+        vm.prank(OWNER);
+
+        vm.expectRevert(Errors.RouterAlreadySet.selector);
+        verifier.setRouter(ALICE);
     }
 
     /// @dev Tests the onlySovereign modifier with a valid message

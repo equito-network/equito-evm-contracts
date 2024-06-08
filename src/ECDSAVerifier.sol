@@ -60,13 +60,11 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         address[] memory _validators,
         uint256 _session,
         address _oracle,
-        address _router,
         bytes64 memory _equitoAddress
     ) {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
-        router = IRouter(_router);
         equitoAddress = _equitoAddress;
         noFee[address(this)] = true;
     }
@@ -78,6 +76,15 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             message.sender.upper != equitoAddress.upper
         ) revert Errors.InvalidSovereign();
         _;
+    }
+
+    /// @notice Sets the Router contract used to send cross-chain messages.
+    /// @param _router The address of the Router contract.
+    function setRouter(address _router) external {
+        if (address(router) != address(0)) {
+            revert Errors.RouterAlreadySet();
+        }
+        router = IRouter(_router);
     }
 
     /// @notice Verifies that a set of `EquitoMessage` instances have been signed by a sufficient number of Validators.

@@ -43,7 +43,6 @@ contract DeployRouter is Script {
             validators,
             0,
             address(oracle),
-            address(router),
             EquitoMessageLibrary.addressToBytes64(equitoAddress)
         );
         console.log(
@@ -58,6 +57,10 @@ contract DeployRouter is Script {
             address(verifier)
         );
         console.log("Deployed Router successfully =>", address(router));
+
+        console.log("======== Setting Router in ECDSAVerifier =========");
+        verifier.setRouter(address(router));
+        console.log("Set Router in ECDSAVerifier successfully");
 
         console.log("======== Finished deploy process =========");
 

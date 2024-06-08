@@ -13,9 +13,8 @@ contract MockECDSAVerifier is ECDSAVerifier {
         address[] memory _validators,
         uint256 _session,
         address _oracle,
-        address _router,
         bytes64 memory _equitoAddress
-    ) ECDSAVerifier(_validators, _session, _oracle, _router, _equitoAddress) {}
+    ) ECDSAVerifier(_validators, _session, _oracle, _equitoAddress) {}
 
     function transferFees(address liquidityProvider, uint256 amount) external {
         _transferFees(liquidityProvider, amount);

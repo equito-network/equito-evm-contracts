@@ -34,6 +34,7 @@ contract RouterTest is Test {
         verifier = new MockVerifier();
         equitoFees = new MockEquitoFees();
         router = new Router(1, address(verifier), address(equitoFees));
+        verifier.setRouter(address(router));
         receiver = new MockReceiver();
     }
 
