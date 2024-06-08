@@ -37,7 +37,11 @@ contract CrossChainSwapTest is Test {
         verifier = new MockVerifier();
         equitoFees = new MockEquitoFees();
         receiver = new MockReceiver();
-        router = new Router(1, address(verifier), address(equitoFees));
+
+        router = new Router(1);
+        router.addFirstVerifier(address(verifier));
+        router.setEquitoFees(address(equitoFees));
+
         swap = new CrossChainSwap(address(router));
         token0 = new MockERC20("Token0", "TK0", 1_000_000 ether);
 

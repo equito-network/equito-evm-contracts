@@ -34,16 +34,8 @@ contract Router is IRouter {
 
     /// @notice Initializes the Router contract with a chain selector, an initial verifier and the address of the EquitoFees contract..
     /// @param _chainSelector The chain selector of the chain where the Router contract is deployed.
-    /// @notice Initializes the contract with the address of the EquitoFees contract.
-    /// @param _initialVerifier The address of the initial verifier contract.
-    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees) {
-        if (_initialVerifier == address(0)) {
-            revert Errors.InitialVerifierZeroAddress();
-        }
+    constructor(uint256 _chainSelector) {
         chainSelector = _chainSelector;
-        verifiers.push(IEquitoVerifier(_initialVerifier));
-
-        equitoFees = IEquitoFees(_equitoFees);
     }
 
     /// @notice Sends a cross-chain message using Equito.
@@ -178,5 +170,23 @@ contract Router is IRouter {
         } else {
             revert Errors.InvalidNewVerifierProof(_newVerifier);
         }
+    }
+
+    /// @notice Adds the first verifier to the Router contract if the verifier list is empty.
+    /// @param _firstVerifier The address of the first verifier to be added.
+    function addFirstVerifier(address _firstVerifier) external {
+        if (verifiers.length > 0) {
+            revert Errors.VerifierListNotEmpty();
+        }
+        verifiers.push(IEquitoVerifier(_firstVerifier));
+    }
+
+    /// @notice Sets the EquitoFees contract if not already set.
+    /// @param _equitoFees The address of the EquitoFees contract.
+    function setEquitoFees(address _equitoFees) external {
+        if (address(equitoFees) != address(0)) {
+            revert Errors.EquitoFeesAlreadySet();
+        }
+        equitoFees = IEquitoFees(_equitoFees);
     }
 }

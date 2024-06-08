@@ -33,13 +33,32 @@ contract RouterTest is Test {
     function setUp() public {
         verifier = new MockVerifier();
         equitoFees = new MockEquitoFees();
-        router = new Router(1, address(verifier), address(equitoFees));
+        router = new Router(1);
         receiver = new MockReceiver();
+        
+        router.addFirstVerifier(address(verifier));
+        router.setEquitoFees(address(equitoFees));
     }
 
     /// @dev Tests the constructor of the Router contract
     function testConstructor() public {
         assertEq(router.chainSelector(), 1, "Chain selector not initialized correctly");
+    }
+
+    // Test adding a first verifier
+    function testAddFirstVerifier() public {
+        vm.prank(ALICE);
+
+        vm.expectRevert(Errors.VerifierListNotEmpty.selector);
+        router.addFirstVerifier(ALICE);
+    }
+
+    // Test setting an equito fees address
+    function testSetEquitoFees() public {
+        vm.prank(ALICE);
+
+        vm.expectRevert(Errors.EquitoFeesAlreadySet.selector);
+        router.setEquitoFees(ALICE);
     }
 
     // Test sending a message with no Ether

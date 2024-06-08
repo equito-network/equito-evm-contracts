@@ -38,13 +38,21 @@ contract DeployRouter is Script {
         validators[1] = BALTATHAR;
         validators[2] = CHARLETH;
 
+        console.log("======== Deploying Router =========");
+        router = new Router(chainSelector);
+        console.log("Deployed Router successfully =>", address(router));
+
         console.log("======== Deploying ECDSAVerifier Verifier =========");
         verifier = new ECDSAVerifier(validators, 0, address(oracle), address(router), hex"45717569746f");
         console.log("Deployed ECDSAVerifier Verifier successfully =>", address(verifier));
 
-        console.log("======== Deploying Router =========");
-        router = new Router(chainSelector, address(verifier), address(verifier));
-        console.log("Deployed Router successfully =>", address(router));
+        console.log("======== Adding first verifier to Router =========");
+        router.addFirstVerifier(address(verifier));
+        console.log("Added first verifier to Router successfully =>", address(verifier));
+
+        console.log("======== Setting EquitoFees =========");
+        router.setEquitoFees(address(verifier));
+        console.log("Set EquitoFees successfully =>", address(verifier));
 
         console.log("======== Finished deploy process =========");
 

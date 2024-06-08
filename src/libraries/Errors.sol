@@ -22,9 +22,6 @@ library Errors {
     /// @notice Thrown when the verifier index provided is out of bounds.
     error InvalidVerifierIndex();
 
-    /// @notice Thrown when the initial verifier address provided in the constructor is zero.
-    error InitialVerifierZeroAddress();
-
     /// @notice Thrown when a verifier address provided is zero.
     error VerifierZeroAddress();
 
@@ -75,4 +72,10 @@ library Errors {
 
     /// @notice Thrown when there is a mismatch in session IDs during validation.
     error SessionIdMismatch();
+
+    /// @notice Thrown when attempting to add the first verifier, but the verifier list is not empty.
+    error VerifierListNotEmpty();
+
+    /// @notice Thrown when attempting to set the EquitoFees contract, but it has already been set.
+    error EquitoFeesAlreadySet();
 }
