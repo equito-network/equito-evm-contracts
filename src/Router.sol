@@ -172,7 +172,7 @@ contract Router is IRouter {
             revert Errors.InvalidVerifierIndex();
         }
 
-        if (verifiers[verifierIndex].verifySignatures(keccak256(abi.encode(_newVerifier)), proof)) {
+        if (verifiers[verifierIndex].verifySignatures(keccak256(abi.encodePacked(_newVerifier)), proof)) {
             verifiers.push(IEquitoVerifier(_newVerifier));
             emit VerifierAdded(_newVerifier);
         } else {

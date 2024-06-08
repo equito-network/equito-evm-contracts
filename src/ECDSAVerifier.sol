@@ -80,15 +80,11 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     ) external view override returns (bool) {
         if (messages.length == 0) return false;
 
-        bytes32 hashed;
         if (messages.length == 1) {
-            hashed = EquitoMessageLibrary._hash(messages[0]);
+            return this.verifySignatures(EquitoMessageLibrary._hash(messages[0]), proof);
         } else {
-            // TODO: use a more efficient way to hash multiple messages
-            hashed = keccak256(abi.encode(messages));
+            return this.verifySignatures(EquitoMessageLibrary._hash(messages), proof);
         }
-
-        return this.verifySignatures(hashed, proof);
     }
 
     /// @notice Updates the list of Validators.

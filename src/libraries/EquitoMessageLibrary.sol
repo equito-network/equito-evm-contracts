@@ -35,18 +35,31 @@ library EquitoMessageLibrary {
     ) internal pure returns (bytes32) {
         return
             keccak256(
-                abi.encode(
+                abi.encodePacked(
                     keccak256(
-                        abi.encode(
-                            original.sender,
-                            original.receiver,
+                        abi.encodePacked(
                             original.blockNumber,
                             original.sourceChainSelector,
                             original.destinationChainSelector
                         )
                     ),
+                    keccak256(original.sender),
+                    keccak256(original.receiver),
                     keccak256(original.data)
                 )
             );
+    }
+
+    /// @notice Computes the keccak256 hash of an array of EquitoMessage.
+    /// @param messages The array of EquitoMessage structs to hash.
+    /// @return The keccak256 hash of the array of EquitoMessage.
+    function _hash(
+        EquitoMessage[] memory messages
+    ) internal pure returns (bytes32) {
+        bytes32[] memory hashes = new bytes32[](messages.length);
+        for (uint256 i = 0; i < messages.length; i++) {
+            hashes[i] = _hash(messages[i]);
+        }
+        return keccak256(abi.encodePacked(hashes));
     }
 }
