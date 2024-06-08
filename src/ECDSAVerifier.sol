@@ -98,9 +98,9 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         if (messages.length == 0) return false;
 
         if (messages.length == 1) {
-            return this.verifySignatures(EquitoMessageLibrary._hash(messages[0]), proof);
+            return this.verifySignatures(keccak256(abi.encode(messages[0])), proof);
         } else {
-            return this.verifySignatures(EquitoMessageLibrary._hash(messages), proof);
+            return this.verifySignatures(keccak256(abi.encode(messages)), proof);
         }
     }
 

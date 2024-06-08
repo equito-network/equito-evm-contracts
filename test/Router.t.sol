@@ -34,7 +34,6 @@ contract RouterTest is Test {
         verifier = new MockVerifier();
         equitoFees = new MockEquitoFees();
         router = new Router(1, address(verifier), address(equitoFees));
-        verifier.setRouter(address(router));
         receiver = new MockReceiver();
     }
 
@@ -96,7 +95,7 @@ contract RouterTest is Test {
             2,
             data
         );
-        assertEq(EquitoMessageLibrary._hash(message), messageHash);
+        assertEq(keccak256(abi.encode(message)), messageHash);
     }
 
     /// @dev Tests delivering and executing of messages with a single message successfully
@@ -121,7 +120,7 @@ contract RouterTest is Test {
 
         router.deliverAndExecuteMessages(messages, messageData, 0, abi.encode(1));
         assertTrue(
-            router.isDuplicateMessage(EquitoMessageLibrary._hash(messages[0])),
+            router.isDuplicateMessage(keccak256(abi.encode(messages[0]))),
             "Message not delivered"
         );
     }
@@ -216,8 +215,8 @@ contract RouterTest is Test {
         messageData[1] = data2;
         messageData[2] = data1;
 
-        bytes32 message1Hash = EquitoMessageLibrary._hash(message1);
-        bytes32 message2Hash = EquitoMessageLibrary._hash(message2);
+        bytes32 message1Hash = keccak256(abi.encode(message1));
+        bytes32 message2Hash = keccak256(abi.encode(message2));
 
         router.deliverAndExecuteMessages(messages, messageData, 0, abi.encode(1));
 
@@ -256,7 +255,7 @@ contract RouterTest is Test {
         router.deliverMessages(messages, 0, abi.encode(1));
 
         assertEq(
-            router.storedMessages(EquitoMessageLibrary._hash(messages[0])),
+            router.storedMessages(keccak256(abi.encode(messages[0]))),
             true
         );
     }
@@ -330,7 +329,7 @@ contract RouterTest is Test {
         bytes[] memory messageData = new bytes[](1);
         messageData[0] = data;
 
-        bytes32 messageHash = EquitoMessageLibrary._hash(messages[0]);
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
 
         router.deliverMessages(messages, 0, abi.encode(1));
         assertTrue(router.storedMessages(messageHash), "Message not delivered");

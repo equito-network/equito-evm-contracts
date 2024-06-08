@@ -140,7 +140,7 @@ contract ECDSAVerifierTest is Test {
             receiver: EquitoMessageLibrary.addressToBytes64(alith),
             hashedData: keccak256(abi.encode("Hello, World!"))
         });
-        bytes32 messageHash = EquitoMessageLibrary._hash(messages[0]);
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
 
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),

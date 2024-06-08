@@ -69,7 +69,7 @@ contract Router is IRouter {
 
         emit MessageSendRequested(newMessage, data);
 
-        return EquitoMessageLibrary._hash(newMessage);
+        return keccak256(abi.encode(newMessage));
     }
 
     /// @notice Routes messages to the appropriate receiver contracts.
@@ -92,7 +92,7 @@ contract Router is IRouter {
         }
 
         for (uint256 i = 0; i < messages.length; ) {
-            bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
+            bytes32 messageHash = keccak256(abi.encode(messages[i]));
 
             if (
                 !isDuplicateMessage[messageHash] && 
@@ -129,7 +129,7 @@ contract Router is IRouter {
         }
 
         for (uint256 i = 0; i < messages.length; ) {
-            bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
+            bytes32 messageHash = keccak256(abi.encode(messages[i]));
 
             if (!isDuplicateMessage[messageHash] && !storedMessages[messageHash]) {
                 storedMessages[messageHash] = true;
@@ -149,7 +149,7 @@ contract Router is IRouter {
         bytes[] calldata messageData
     ) external {
         for (uint256 i = 0; i < messages.length; ) {
-            bytes32 messageHash = EquitoMessageLibrary._hash(messages[i]);
+            bytes32 messageHash = keccak256(abi.encode(messages[i]));
 
             if (
                 storedMessages[messageHash] &&
