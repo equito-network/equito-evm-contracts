@@ -40,7 +40,12 @@ contract Router is IRouter, IEquitoReceiver {
     /// @notice Initializes the contract with the address of the EquitoFees contract.
     /// @param _initialVerifier The address of the initial verifier contract.
     /// @param _equitoAddress The address of the Equito Protocol.
-    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees, bytes64 memory _equitoAddress) {
+    constructor(
+        uint256 _chainSelector,
+        address _initialVerifier,
+        address _equitoFees,
+        bytes64 memory _equitoAddress
+    ) {
         if (_initialVerifier == address(0)) {
             revert Errors.InitialVerifierZeroAddress();
         }
@@ -110,7 +115,7 @@ contract Router is IRouter, IEquitoReceiver {
             bytes32 messageHash = keccak256(abi.encode(messages[i]));
 
             if (
-                !isDuplicateMessage[messageHash] && 
+                !isDuplicateMessage[messageHash] &&
                 messages[i].hashedData == keccak256(messageData[i])
             ) {
                 address receiver = 
@@ -143,10 +148,16 @@ contract Router is IRouter, IEquitoReceiver {
             revert Errors.InvalidMessagesProof();
         }
 
+        uint256 _chainSelector = chainSelector;
+
         for (uint256 i = 0; i < messages.length; ) {
             bytes32 messageHash = keccak256(abi.encode(messages[i]));
 
-            if (!isDuplicateMessage[messageHash] && !storedMessages[messageHash]) {
+            if (
+                messages[i].destinationChainSelector == _chainSelector &&
+                !isDuplicateMessage[messageHash] &&
+                !storedMessages[messageHash]
+            ) {
                 storedMessages[messageHash] = true;
             }
 
@@ -163,10 +174,13 @@ contract Router is IRouter, IEquitoReceiver {
         EquitoMessage[] calldata messages,
         bytes[] calldata messageData
     ) external {
+        uint256 _chainSelector = chainSelector;
+
         for (uint256 i = 0; i < messages.length; ) {
             bytes32 messageHash = keccak256(abi.encode(messages[i]));
 
             if (
+                messages[i].destinationChainSelector == _chainSelector &&
                 storedMessages[messageHash] &&
                 !isDuplicateMessage[messageHash] &&
                 messages[i].hashedData == keccak256(messageData[i])
@@ -177,8 +191,6 @@ contract Router is IRouter, IEquitoReceiver {
                     .receiveMessage(messages[i], messageData[i]);
                 isDuplicateMessage[messageHash] = true;
                 delete storedMessages[messageHash];
-            } else {
-                revert Errors.MessageNotDeliveredForExecution();
             }
 
             unchecked { ++i; }
@@ -206,11 +218,7 @@ contract Router is IRouter, IEquitoReceiver {
                 (bytes32, address, uint256, bytes)
             );
 
-            _addVerifier(
-                newVerifier,
-                verifierIndex,
-                proof
-            );
+            _addVerifier(newVerifier, verifierIndex, proof);
         } else if (operation == 0x02) {
             // Update the equito fees
             address newEquitoFees;
@@ -243,7 +251,12 @@ contract Router is IRouter, IEquitoReceiver {
             revert Errors.InvalidVerifierIndex();
         }
 
-        if (verifiers[verifierIndex].verifySignatures(keccak256(abi.encodePacked(_newVerifier)), proof)) {
+        if (
+            verifiers[verifierIndex].verifySignatures(
+                keccak256(abi.encodePacked(_newVerifier)),
+                proof
+            )
+        ) {
             verifiers.push(IEquitoVerifier(_newVerifier));
             emit VerifierAdded(_newVerifier);
         } else {
@@ -253,9 +266,7 @@ contract Router is IRouter, IEquitoReceiver {
 
     /// @notice Sets the equitoFees.
     /// @param _equitoFees The new equito fees address to set.
-    function _setEquitoFees(
-        address _equitoFees
-    ) internal {
+    function _setEquitoFees(address _equitoFees) internal {
         equitoFees = IEquitoFees(_equitoFees);
         emit EquitoFeesSet();
     }

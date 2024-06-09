@@ -25,32 +25,17 @@ library Errors {
     /// @notice Thrown when the initial verifier address provided in the constructor is zero.
     error InitialVerifierZeroAddress();
 
-    /// @notice Thrown when a verifier address provided is zero.
-    error VerifierZeroAddress();
-
     /// @notice Thrown when the lengths of arrays are invalid.
     error InvalidLength();
 
     /// @notice Thrown when the sender of a message is invalid.
-    error InvalidSender();
-
-    /// @notice Thrown when a message was not delivered for execution.
-    error MessageNotDeliveredForExecution();
-
-    /// @notice Thrown when the sender of a message is invalid.
     error InvalidMessageSender();
-
-    /// @notice Thrown when the network is unsupported.
-    error UnsupportedNetwork();
 
     /// @notice Thrown when the provided fee is insufficient to cover the required cost.
     error InsufficientFee();
 
     /// @notice Thrown when the amount of ether sent with the transaction is insufficient.
     error InsufficientValueSent();
-
-    /// @notice Thrown when an invalid address is provided, such as the zero address.
-    error InvalidAddress();
 
     /// @notice Thrown when the provided cost is not greater than zero.
     error CostMustBeGreaterThanZero();
@@ -69,9 +54,6 @@ library Errors {
 
     /// @notice Thrown when a transfer of fees to the liquidity provider fails.
     error TransferFailed();
-
-    /// @notice Thrown when an invalid equito address is provided, such as the zero bytes address.
-    error InvalidEquitoAddress();
 
     /// @notice Thrown when there is a mismatch in session IDs during validation.
     error SessionIdMismatch();

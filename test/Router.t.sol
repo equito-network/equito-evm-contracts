@@ -36,7 +36,12 @@ contract RouterTest is Test {
     function setUp() public {
         verifier = new MockVerifier();
         equitoFees = new MockEquitoFees();
-        router = new Router(1, address(verifier), address(equitoFees), EquitoMessageLibrary.addressToBytes64(equitoAddress));
+        router = new Router(
+            1,
+            address(verifier),
+            address(equitoFees),
+            EquitoMessageLibrary.addressToBytes64(equitoAddress)
+        );
         receiver = new MockReceiver();
     }
 
@@ -108,9 +113,9 @@ contract RouterTest is Test {
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             hashedData: keccak256(data)
         });
@@ -121,7 +126,12 @@ contract RouterTest is Test {
         bytes[] memory messageData = new bytes[](1);
         messageData[0] = data;
 
-        router.deliverAndExecuteMessages(messages, messageData, 0, abi.encode(1));
+        router.deliverAndExecuteMessages(
+            messages,
+            messageData,
+            0,
+            abi.encode(1)
+        );
         assertTrue(
             router.isDuplicateMessage(keccak256(abi.encode(messages[0]))),
             "Message not delivered"
@@ -136,9 +146,9 @@ contract RouterTest is Test {
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             hashedData: keccak256(data)
         });
@@ -152,7 +162,12 @@ contract RouterTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector)
         );
-        router.deliverAndExecuteMessages(messages, messageData, invalidVerifierIndex, proof);
+        router.deliverAndExecuteMessages(
+            messages,
+            messageData,
+            invalidVerifierIndex,
+            proof
+        );
     }
 
     /// @dev Tests delivering and executing of messages with an invalid proof
@@ -164,9 +179,9 @@ contract RouterTest is Test {
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             hashedData: keccak256(data)
         });
@@ -180,7 +195,12 @@ contract RouterTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(Errors.InvalidMessagesProof.selector)
         );
-        router.deliverAndExecuteMessages(messages, messageData, verifierIndex, invalidProof);
+        router.deliverAndExecuteMessages(
+            messages,
+            messageData,
+            verifierIndex,
+            invalidProof
+        );
     }
 
     /// @dev Tests delivering and executing of messages with duplicate messages
@@ -190,9 +210,9 @@ contract RouterTest is Test {
 
         EquitoMessage memory message1 = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             hashedData: keccak256(data1)
         });
@@ -201,9 +221,9 @@ contract RouterTest is Test {
 
         EquitoMessage memory message2 = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             hashedData: keccak256(data2)
         });
@@ -221,7 +241,12 @@ contract RouterTest is Test {
         bytes32 message1Hash = keccak256(abi.encode(message1));
         bytes32 message2Hash = keccak256(abi.encode(message2));
 
-        router.deliverAndExecuteMessages(messages, messageData, 0, abi.encode(1));
+        router.deliverAndExecuteMessages(
+            messages,
+            messageData,
+            0,
+            abi.encode(1)
+        );
 
         assertTrue(
             router.isDuplicateMessage(message1Hash),
@@ -242,9 +267,9 @@ contract RouterTest is Test {
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             hashedData: keccak256(data)
         });
@@ -257,9 +282,8 @@ contract RouterTest is Test {
 
         router.deliverMessages(messages, 0, abi.encode(1));
 
-        assertEq(
-            router.storedMessages(keccak256(abi.encode(messages[0]))),
-            true
+        assertTrue(
+            router.storedMessages(keccak256(abi.encode(messages[0])))
         );
     }
 
@@ -296,9 +320,9 @@ contract RouterTest is Test {
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             hashedData: keccak256(data)
         });
@@ -319,9 +343,9 @@ contract RouterTest is Test {
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             hashedData: keccak256(data)
         });
@@ -359,9 +383,9 @@ contract RouterTest is Test {
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
+            sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
             hashedData: keccak256(data)
         });
@@ -372,12 +396,12 @@ contract RouterTest is Test {
         bytes[] memory messageData = new bytes[](1);
         messageData[0] = data;
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Errors.MessageNotDeliveredForExecution.selector
-            )
-        );
         router.executeMessages(messages, messageData);
+
+        assertFalse(
+            keccak256(abi.encode(receiver.getMessage())) == keccak256(abi.encode(message)),
+            "Undelivered message should not be executed"
+        );
     }
 
     /// @notice Tests the receive message with add verifier command.
@@ -390,7 +414,7 @@ contract RouterTest is Test {
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 0,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
             hashedData: keccak256(data)
         });
@@ -416,11 +440,11 @@ contract RouterTest is Test {
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 0,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
             hashedData: keccak256(data)
         });
-        
+
         vm.expectRevert(
             abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector)
         );
@@ -437,11 +461,11 @@ contract RouterTest is Test {
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 0,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
             hashedData: keccak256(data)
         });
-        
+
         vm.expectRevert(
             abi.encodeWithSelector(
                 Errors.InvalidNewVerifierProof.selector,
@@ -463,7 +487,7 @@ contract RouterTest is Test {
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 0,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
             hashedData: keccak256(data)
         });
@@ -472,10 +496,13 @@ contract RouterTest is Test {
         emit EquitoFeesSet();
         router.receiveMessage(message, data);
 
-        bytes64 memory _equitoFees = EquitoMessageLibrary.addressToBytes64(address(router.equitoFees()));
+        bytes64 memory _equitoFees = EquitoMessageLibrary.addressToBytes64(
+            address(router.equitoFees())
+        );
 
         assert(
-            _equitoFees.lower == newEquitoFees.lower && _equitoFees.upper == newEquitoFees.upper
+            _equitoFees.lower == newEquitoFees.lower &&
+                _equitoFees.upper == newEquitoFees.upper
         );
     }
 
@@ -491,7 +518,7 @@ contract RouterTest is Test {
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 0,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
             hashedData: keccak256(data)
         });
@@ -513,7 +540,7 @@ contract RouterTest is Test {
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 0,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(BOB),
             hashedData: keccak256(abi.encode(bytes1(0x07)))
         });
