@@ -42,15 +42,10 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     event MessageCostUsdSet(uint256 newMessageCostUsd);
     /// @notice Event emitted when fees are transferred to the liquidity provider.
     event FeesTransferred(address indexed liquidityProvider, uint256 session, uint256 amount);
-    /// @notice Event emitted when the equito address is set.
-    event EquitoAddressSet();
     /// @notice Event emitted when an address is added to the noFee list.
     event NoFeeAddressAdded(address indexed noFeeAddress);
     /// @notice Event emitted when an address is removed from the noFee list.
     event NoFeeAddressRemoved(address indexed noFeeAddress);
-
-    /// @notice The Equito Protocol address, represented in bytes64.
-    bytes64 public equitoAddress;
 
     /// @notice Initializes the contract with the initial validator set and session identifier.
     /// @param _validators The initial list of validator addresses.
@@ -59,21 +54,21 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     constructor(
         address[] memory _validators,
         uint256 _session,
-        address _oracle,
-        bytes64 memory _equitoAddress
+        address _oracle
     ) {
         validators = _validators;
         session = _session;
         oracle = IOracle(_oracle);
-        equitoAddress = _equitoAddress;
         noFee[address(this)] = true;
     }
 
     modifier onlySovereign(EquitoMessage calldata message) {
+        bytes64 memory _equitoAddress = EquitoMessageLibrary.addressToBytes64(router.equitoAddress());
+
         if (
             message.sourceChainSelector != 0 ||
-            message.sender.lower != equitoAddress.lower ||
-            message.sender.upper != equitoAddress.upper
+            message.sender.lower != _equitoAddress.lower ||
+            message.sender.upper != _equitoAddress.upper
         ) revert Errors.InvalidSovereign();
         _;
     }
@@ -219,7 +214,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             this.updateValidators(newValidators);
 
             router.sendMessage(
-                equitoAddress,
+                EquitoMessageLibrary.addressToBytes64(router.equitoAddress()),
                 0,
                 abi.encode(currentSession, fees[currentSession])
             );
@@ -233,25 +228,19 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
             _setMessageCostUsd(newMessageCostUsd);
         } else if (operation == 0x03) {
-            // Update the equito address
-            bytes64 memory newEquitoAddress;
-            (, newEquitoAddress) = abi.decode(messageData, (bytes32, bytes64));
-
-            _setEquitoAddress(newEquitoAddress);
-        } else if (operation == 0x04) {
             // Transfer fees to the liquidity provider
             address liquidityProvider;
             uint256 amount;
             (, liquidityProvider, amount) = abi.decode(messageData, (bytes32, address, uint256));
 
             _transferFees(liquidityProvider, amount);
-        } else if (operation == 0x05) {
+        } else if (operation == 0x04) {
             // Add address to the noFee list
             address noFeeAddress;
             (, noFeeAddress) = abi.decode(messageData, (bytes32, address));
 
             _addNoFeeAddress(noFeeAddress);
-        } else if (operation == 0x06) {
+        } else if (operation == 0x05) {
             // Remove address from the noFee list
             address noFeeAddress;
             (, noFeeAddress) = abi.decode(messageData, (bytes32, address));
@@ -319,12 +308,5 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
         messageCostUsd = _messageCostUsd;
         emit MessageCostUsdSet(_messageCostUsd);
-    }
-
-    /// @notice Sets the equitoAddress if it is not zero bytes.
-    /// @param _equitoAddress The new equito address to set.
-    function _setEquitoAddress(bytes64 memory _equitoAddress) internal {
-        equitoAddress = _equitoAddress;
-        emit EquitoAddressSet();
     }
 }

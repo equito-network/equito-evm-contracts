@@ -28,6 +28,12 @@ interface IRouter {
     /// @param messages The list of messages that have been executed.
     event MessagesExecuted(EquitoMessage[] messages);
 
+    /// @notice Emitted when the Equito fees are set.
+    event EquitoFeesSet();
+
+    /// @notice Event emitted when the equito address is set.
+    event EquitoAddressSet();
+
     /// @notice Sends a cross-chain message using Equito.
     /// @param receiver The address of the receiver.
     /// @param destinationChainSelector The chain selector of the destination chain.
@@ -69,16 +75,9 @@ interface IRouter {
         bytes[] calldata messageData
     ) external;
 
-    /// @notice Adds a new verifier to the Router contract.
-    /// @param _newVerifier The address of the new verifier.
-    /// @param verifierIndex The index of the verifier used to verify the new verifier.
-    /// @param proof The proof provided by the verifier.
-    function addVerifier(
-        address _newVerifier,
-        uint256 verifierIndex,
-        bytes calldata proof
-    ) external;
-
     /// @notice Returns the chain selector of the current chain.
     function chainSelector() external view returns (uint256);
+
+    /// @notice Returns the equito address.
+    function equitoAddress() external view returns (address);
 }

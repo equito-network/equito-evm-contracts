@@ -29,6 +29,7 @@ contract CrossChainSwapTest is Test {
     address constant OWNER = address(0x03132);
     address constant ALICE = address(0xA11CE);
     address constant BOB = address(0xB0B);
+    address equitoAddress = address(0x45717569746f);
 
     uint256 constant INITIAL_FEE = 0.1 ether;
 
@@ -37,7 +38,7 @@ contract CrossChainSwapTest is Test {
         verifier = new MockVerifier();
         equitoFees = new MockEquitoFees();
         receiver = new MockReceiver();
-        router = new Router(1, address(verifier), address(equitoFees));
+        router = new Router(1, address(verifier), address(equitoFees), equitoAddress);
         swap = new CrossChainSwap(address(router));
         token0 = new MockERC20("Token0", "TK0", 1_000_000 ether);
 

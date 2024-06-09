@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {Test, console} from "forge-std/Test.sol";
 import {Router, IRouter} from "../src/Router.sol";
-import {EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockReceiver} from "./mock/MockReceiver.sol";
 import {MockVerifier} from "./mock/MockVerifier.sol";
 import {MockEquitoFees} from "./mock/MockEquitoFees.sol";
@@ -21,6 +21,7 @@ contract RouterTest is Test {
 
     address constant ALICE = address(0xA11CE);
     address constant BOB = address(0xB0B);
+    address equitoAddress = address(0x45717569746f);
 
     uint256 constant INITIAL_FEE = 0.1 ether;
 
@@ -29,11 +30,13 @@ contract RouterTest is Test {
     event MessagesDelivered(EquitoMessage[] messages);
     event MessagesExecuted(EquitoMessage[] messages);
     event FeePaid(address indexed payer, uint256 amount);
+    event EquitoAddressSet();
+    event EquitoFeesSet();
 
     function setUp() public {
         verifier = new MockVerifier();
         equitoFees = new MockEquitoFees();
-        router = new Router(1, address(verifier), address(equitoFees));
+        router = new Router(1, address(verifier), address(equitoFees), equitoAddress);
         receiver = new MockReceiver();
     }
 
@@ -377,15 +380,24 @@ contract RouterTest is Test {
         router.executeMessages(messages, messageData);
     }
 
-    /// @dev Tests adding a verifier to the Router contract successfully
-    function testAddVerifierSuccess() public {
-        vm.prank(BOB);
+    /// @notice Tests the receive message with add verifier command.
+    function testReceiveMessageAddVerifier() external {
         bytes memory proof = abi.encode("proof");
+
+        bytes memory data = abi.encode(bytes1(0x01), BOB, 0, proof);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
+            hashedData: keccak256(data)
+        });
 
         vm.expectEmit(true, true, true, true);
         emit VerifierAdded(BOB);
-
-        router.addVerifier(BOB, 0, proof);
+        router.receiveMessage(message, data);
 
         assertEq(
             address(router.verifiers(1)),
@@ -394,28 +406,120 @@ contract RouterTest is Test {
         );
     }
 
-    /// @dev Tests adding a verifier with an invalid verifier index
-    function testAddVerifierInvalidVerifierIndex() public {
+    /// @notice Tests the receive message with add verifier command when invalid verifier index received.
+    function testReceiveMessageAddVerifierInvalidVerifierIndex() external {
         bytes memory proof = abi.encode("proof");
-        uint256 invalidVerifierIndex = 1;
 
+        bytes memory data = abi.encode(bytes1(0x01), BOB, 2, proof);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
+            hashedData: keccak256(data)
+        });
+        
         vm.expectRevert(
             abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector)
         );
-        router.addVerifier(address(verifier), invalidVerifierIndex, proof);
+        router.receiveMessage(message, data);
     }
 
-    /// @dev Tests adding a verifier with an invalid proof
-    function testAddVerifierInvalidProof() public {
-        uint256 verifierIndex = 0;
+    /// @notice Tests the receive message with add verifier command when invalid proof received.
+    function testReceiveMessageAddVerifierInvalidProof() external {
         bytes memory invalidProof = "";
 
+        bytes memory data = abi.encode(bytes1(0x01), BOB, 0, invalidProof);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
+            hashedData: keccak256(data)
+        });
+        
         vm.expectRevert(
             abi.encodeWithSelector(
                 Errors.InvalidNewVerifierProof.selector,
-                address(verifier)
+                address(BOB)
             )
         );
-        router.addVerifier(address(verifier), verifierIndex, invalidProof);
+        router.receiveMessage(message, data);
+    }
+
+    /// @notice Tests the receive message with set equito fees command.
+    function testReceiveMessageSetEquitoFees() external {
+        bytes64 memory newEquitoFees = EquitoMessageLibrary.addressToBytes64(
+            address(0xbeef)
+        );
+
+        bytes memory data = abi.encode(bytes1(0x02), newEquitoFees);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
+            hashedData: keccak256(data)
+        });
+
+        vm.expectEmit(true, true, true, true);
+        emit EquitoFeesSet();
+        router.receiveMessage(message, data);
+
+        bytes64 memory _equitoFees = EquitoMessageLibrary.addressToBytes64(address(router.equitoFees()));
+
+        assert(
+            _equitoFees.lower == newEquitoFees.lower && _equitoFees.upper == newEquitoFees.upper
+        );
+    }
+
+    /// @notice Tests the receive message with set equito address command.
+    function testReceiveMessageSetEquitoAddress() external {
+        bytes64 memory newEquitoAddress = EquitoMessageLibrary.addressToBytes64(
+            address(0xbeef)
+        );
+
+        bytes memory data = abi.encode(bytes1(0x03), newEquitoAddress);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
+            hashedData: keccak256(data)
+        });
+
+        vm.expectEmit(true, true, true, true);
+        emit EquitoAddressSet();
+        router.receiveMessage(message, data);
+
+        bytes64 memory _equitoAddress = EquitoMessageLibrary.addressToBytes64(router.equitoAddress());
+
+        assert(
+            _equitoAddress.lower == newEquitoAddress.lower && _equitoAddress.upper == newEquitoAddress.upper
+        );
+    }
+
+    /// @notice Tests the receive message with invalid command.
+    function testReceiveMessageInvalidOperation() external {
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 0,
+            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
+            hashedData: keccak256(abi.encode(bytes1(0x07)))
+        });
+
+        vm.prank(address(router));
+        vm.expectRevert(Errors.InvalidOperation.selector);
+        router.receiveMessage(message, abi.encode(bytes1(0x07)));
     }
 }

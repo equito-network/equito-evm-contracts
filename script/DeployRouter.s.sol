@@ -23,9 +23,9 @@ contract DeployRouter is Script {
     Router public router;
     IOracle public oracle;
 
-    address ALITH = 0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac;
-    address BALTATHAR = 0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0;
-    address CHARLETH = 0x798d4Ba9baf0064Ec19eB4F0a1a45785ae9D6DFc;
+    address constant ALITH = 0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac;
+    address constant BALTATHAR = 0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0;
+    address constant CHARLETH = 0x798d4Ba9baf0064Ec19eB4F0a1a45785ae9D6DFc;
 
     function run() public {
         string memory root = vm.projectRoot();
@@ -42,8 +42,7 @@ contract DeployRouter is Script {
         verifier = new ECDSAVerifier(
             validators,
             0,
-            address(oracle),
-            EquitoMessageLibrary.addressToBytes64(equitoAddress)
+            address(oracle)
         );
         console.log(
             "Deployed ECDSAVerifier Verifier successfully =>",
@@ -54,7 +53,8 @@ contract DeployRouter is Script {
         router = new Router(
             chainSelector,
             address(verifier),
-            address(verifier)
+            address(verifier),
+            address(0x45717569746f)
         );
         console.log("Deployed Router successfully =>", address(router));
 
