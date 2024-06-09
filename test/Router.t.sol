@@ -3,6 +3,7 @@
 pragma solidity ^0.8.23;
 
 import {Test, console} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {Router, IRouter} from "../src/Router.sol";
 import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockReceiver} from "./mock/MockReceiver.sol";
@@ -27,8 +28,8 @@ contract RouterTest is Test {
 
     event MessageSendRequested(EquitoMessage message, bytes data);
     event VerifierAdded(address indexed verifier);
-    event MessagesDelivered(EquitoMessage[] messages);
-    event MessagesExecuted(EquitoMessage[] messages);
+    event MessageDelivered(bytes32 messageHash);
+    event MessageExecuted(bytes32 messageHash);
     event FeePaid(address indexed payer, uint256 amount);
     event EquitoAddressSet();
     event EquitoFeesSet();
@@ -278,7 +279,7 @@ contract RouterTest is Test {
         messages[0] = message;
 
         vm.expectEmit(true, true, false, true);
-        emit MessagesDelivered(messages);
+        emit MessageDelivered(keccak256(abi.encode(message)));
 
         router.deliverMessages(messages, 0, abi.encode(1));
 
@@ -362,7 +363,7 @@ contract RouterTest is Test {
         assertTrue(router.storedMessages(messageHash), "Message not delivered");
 
         vm.expectEmit(true, true, false, true);
-        emit MessagesExecuted(messages);
+        emit MessageExecuted(keccak256(abi.encode(message)));
 
         router.executeMessages(messages, messageData);
 
@@ -548,5 +549,56 @@ contract RouterTest is Test {
         vm.prank(address(router));
         vm.expectRevert(Errors.InvalidOperation.selector);
         router.receiveMessage(message, abi.encode(bytes1(0x07)));
+    }
+
+    /// @notice Tests the message with invalid destination chain selector.
+    function testMessageInvalidDestinationChainSelector() external {
+        bytes memory data = abi.encode("Hello, World!");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
+            destinationChainSelector: 0,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(receiver)),
+            hashedData: keccak256(data)
+        });
+
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = message;
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = data;
+
+        router.deliverAndExecuteMessages(messages, messageData, 0, abi.encode(1));
+
+        Vm.Log[] memory entriesDeliverExecute = vm.getRecordedLogs();
+        assertEq(entriesDeliverExecute.length, 0, "No logs should be emitted");
+        assertFalse(
+            router.storedMessages(keccak256(abi.encode(messages[0]))),
+            "Message should not be delivered"
+        );
+        assertFalse(
+            router.isDuplicateMessage(keccak256(abi.encode(messages[0]))),
+            "Message should not be marked as duplicate"
+        );
+        assertNotEq(receiver.getMessage().hashedData, message.hashedData, "Message should not be received");
+
+        router.deliverMessages(messages, 0, abi.encode(1));
+        Vm.Log[] memory entriesDeliver = vm.getRecordedLogs();
+        assertEq(entriesDeliver.length, 0, "No logs should be emitted");
+        assertFalse(
+            router.storedMessages(keccak256(abi.encode(messages[0]))),
+            "Message should not be delivered"
+        );
+
+        router.executeMessages(messages, messageData);
+        Vm.Log[] memory entriesExecute = vm.getRecordedLogs();
+        assertEq(entriesExecute.length, 0, "No logs should be emitted");
+        assertFalse(
+            router.isDuplicateMessage(keccak256(abi.encode(messages[0]))),
+            "Message should not be marked as duplicate"
+        );
+        assertNotEq(receiver.getMessage().hashedData, message.hashedData, "Message should not be received");
+
     }
 }

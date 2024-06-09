@@ -115,6 +115,7 @@ contract Router is IRouter, IEquitoReceiver {
             bytes32 messageHash = keccak256(abi.encode(messages[i]));
 
             if (
+                messages[i].destinationChainSelector == chainSelector &&
                 !isDuplicateMessage[messageHash] &&
                 messages[i].hashedData == keccak256(messageData[i])
             ) {
@@ -123,12 +124,11 @@ contract Router is IRouter, IEquitoReceiver {
                 IEquitoReceiver(receiver)
                     .receiveMessage(messages[i], messageData[i]);
                 isDuplicateMessage[messageHash] = true;
+                emit MessageExecuted(messageHash);
             }
 
             unchecked { ++i; }
         }
-
-        emit MessageSendDelivered(messages);
     }
 
     /// @notice Delivers messages to be stored for later execution.
@@ -159,12 +159,11 @@ contract Router is IRouter, IEquitoReceiver {
                 !storedMessages[messageHash]
             ) {
                 storedMessages[messageHash] = true;
+                emit MessageDelivered(messageHash);
             }
 
             unchecked { ++i; }
         }
-
-        emit MessagesDelivered(messages);
     }
 
     /// @notice Executes the stored messages.
@@ -191,12 +190,11 @@ contract Router is IRouter, IEquitoReceiver {
                     .receiveMessage(messages[i], messageData[i]);
                 isDuplicateMessage[messageHash] = true;
                 delete storedMessages[messageHash];
+                emit MessageExecuted(messageHash);
             }
 
             unchecked { ++i; }
         }
-
-        emit MessagesExecuted(messages);
     }
 
     /// @notice Receives a cross-chain message from the Router contract.

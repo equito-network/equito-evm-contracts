@@ -12,21 +12,17 @@ interface IRouter {
     /// @param messageData The data of the message being sent.
     event MessageSendRequested(EquitoMessage message, bytes messageData);
 
-    /// @notice Emitted when messages are delivered to their destination.
-    /// @param messages The list of messages that were delivered.
-    event MessageSendDelivered(EquitoMessage[] messages);
-
     /// @notice Emitted when a new verifier is added.
     /// @param verifier The address of the new verifier.
     event VerifierAdded(address indexed verifier);
 
-    /// @notice Emitted when messages are successfully delivered for execution.
-    /// @param messages The list of messages that have been delivered for execution.
-    event MessagesDelivered(EquitoMessage[] messages);
+    /// @notice Emitted when a messages has successfully been delivered, ready to be executed.
+    /// @param messageHash The hash of the message that has been delivered.
+    event MessageDelivered(bytes32 messageHash);
 
-    /// @notice Emitted when messages are successfully executed.
-    /// @param messages The list of messages that have been executed.
-    event MessagesExecuted(EquitoMessage[] messages);
+    /// @notice Emitted when a messag has successfully been executed.
+    /// @param messageHash The hash of the message that has been executed.
+    event MessageExecuted(bytes32 messageHash);
 
     /// @notice Emitted when the Equito fees are set.
     event EquitoFeesSet();
