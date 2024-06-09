@@ -79,5 +79,5 @@ interface IRouter {
     function chainSelector() external view returns (uint256);
 
     /// @notice Returns the equito address.
-    function equitoAddress() external view returns (address);
+    function equitoAddress() external view returns (bytes32, bytes32);
 }

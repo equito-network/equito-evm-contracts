@@ -49,7 +49,7 @@ contract ECDSAVerifierTest is Test {
             0,
             address(oracle)
         );
-        router = new MockRouter(1, address(verifier), address(verifier), equitoAddress);
+        router = new MockRouter(1, address(verifier), address(verifier), EquitoMessageLibrary.addressToBytes64(equitoAddress));
         verifier.setRouter(address(router));
         verifier.setMessageCostUsd(1000);
         vm.stopPrank();

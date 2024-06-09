@@ -36,7 +36,7 @@ contract RouterTest is Test {
     function setUp() public {
         verifier = new MockVerifier();
         equitoFees = new MockEquitoFees();
-        router = new Router(1, address(verifier), address(equitoFees), equitoAddress);
+        router = new Router(1, address(verifier), address(equitoFees), EquitoMessageLibrary.addressToBytes64(equitoAddress));
         receiver = new MockReceiver();
     }
 
@@ -500,10 +500,10 @@ contract RouterTest is Test {
         emit EquitoAddressSet();
         router.receiveMessage(message, data);
 
-        bytes64 memory _equitoAddress = EquitoMessageLibrary.addressToBytes64(router.equitoAddress());
+        (bytes32 lower, bytes32 upper) = router.equitoAddress();
 
         assert(
-            _equitoAddress.lower == newEquitoAddress.lower && _equitoAddress.upper == newEquitoAddress.upper
+            lower == newEquitoAddress.lower && upper == newEquitoAddress.upper
         );
     }
 

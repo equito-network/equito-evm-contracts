@@ -12,7 +12,7 @@ import {Test, console} from "forge-std/Test.sol";
 contract MockRouter is IRouter, IEquitoReceiver {
     uint256 public immutable chainSelector;
 
-    address public equitoAddress;
+    bytes64 public equitoAddress;
 
     IEquitoVerifier[] public verifiers;
 
@@ -20,7 +20,7 @@ contract MockRouter is IRouter, IEquitoReceiver {
 
     IEquitoFees public equitoFees;
 
-    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees, address _equitoAddress) {
+    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees, bytes64 memory _equitoAddress) {
         chainSelector = _chainSelector;
         verifiers.push(IEquitoVerifier(_initialVerifier));
 

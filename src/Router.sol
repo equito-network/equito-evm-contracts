@@ -19,7 +19,7 @@ contract Router is IRouter, IEquitoReceiver {
     uint256 public immutable chainSelector;
 
     /// @notice The Equito Protocol address.
-    address public equitoAddress;
+    bytes64 public equitoAddress;
 
     /// @notice The list of verifiers used to verify the messages.
     IEquitoVerifier[] public verifiers;
@@ -40,7 +40,7 @@ contract Router is IRouter, IEquitoReceiver {
     /// @notice Initializes the contract with the address of the EquitoFees contract.
     /// @param _initialVerifier The address of the initial verifier contract.
     /// @param _equitoAddress The address of the Equito Protocol.
-    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees, address _equitoAddress) {
+    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees, bytes64 memory _equitoAddress) {
         if (_initialVerifier == address(0)) {
             revert Errors.InitialVerifierZeroAddress();
         }
@@ -53,12 +53,10 @@ contract Router is IRouter, IEquitoReceiver {
     }
 
     modifier onlySovereign(EquitoMessage calldata message) {
-        bytes64 memory _equitoAddress = EquitoMessageLibrary.addressToBytes64(equitoAddress);
-
         if (
             message.sourceChainSelector != 0 ||
-            message.sender.lower != _equitoAddress.lower ||
-            message.sender.upper != _equitoAddress.upper
+            message.sender.lower != equitoAddress.lower ||
+            message.sender.upper != equitoAddress.upper
         ) revert Errors.InvalidSovereign();
         _;
     }
@@ -221,8 +219,8 @@ contract Router is IRouter, IEquitoReceiver {
             _setEquitoFees(newEquitoFees);
         } else if (operation == 0x03) {
             // Update the equito address
-            address newEquitoAddress;
-            (, newEquitoAddress) = abi.decode(messageData, (bytes32, address));
+            bytes64 memory newEquitoAddress;
+            (, newEquitoAddress) = abi.decode(messageData, (bytes32, bytes64));
 
             _setEquitoAddress(newEquitoAddress);
         } else {
@@ -264,8 +262,9 @@ contract Router is IRouter, IEquitoReceiver {
 
     /// @notice Sets the equitoAddress.
     /// @param _equitoAddress The new equito address to set.
-    function _setEquitoAddress(address _equitoAddress) internal {
-        equitoAddress = _equitoAddress;
+    function _setEquitoAddress(bytes64 memory _equitoAddress) internal {
+        equitoAddress.lower = _equitoAddress.lower;
+        equitoAddress.upper = _equitoAddress.upper;
         emit EquitoAddressSet();
     }
 }

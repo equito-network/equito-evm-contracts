@@ -63,12 +63,12 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     }
 
     modifier onlySovereign(EquitoMessage calldata message) {
-        bytes64 memory _equitoAddress = EquitoMessageLibrary.addressToBytes64(router.equitoAddress());
+        (bytes32 lower, bytes32 upper) = router.equitoAddress();
 
         if (
             message.sourceChainSelector != 0 ||
-            message.sender.lower != _equitoAddress.lower ||
-            message.sender.upper != _equitoAddress.upper
+            message.sender.lower != lower ||
+            message.sender.upper != upper
         ) revert Errors.InvalidSovereign();
         _;
     }
@@ -212,9 +212,11 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             if (currentSession != session) revert Errors.SessionIdMismatch();
 
             this.updateValidators(newValidators);
-
+            
+            (bytes32 lower, bytes32 upper) = router.equitoAddress();
+            
             router.sendMessage(
-                EquitoMessageLibrary.addressToBytes64(router.equitoAddress()),
+                bytes64(lower, upper),
                 0,
                 abi.encode(currentSession, fees[currentSession])
             );

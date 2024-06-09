@@ -54,7 +54,7 @@ contract DeployRouter is Script {
             chainSelector,
             address(verifier),
             address(verifier),
-            address(0x45717569746f)
+            EquitoMessageLibrary.addressToBytes64(address(0x45717569746f))
         );
         console.log("Deployed Router successfully =>", address(router));
 

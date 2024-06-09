@@ -26,7 +26,7 @@ contract EquitoAppTest is Test {
     function setUp() public {
         vm.startPrank(OWNER);
         verifier = new MockVerifier();
-        router = new MockRouter(1, address(verifier), address(verifier), equitoAddress);
+        router = new MockRouter(1, address(verifier), address(verifier), EquitoMessageLibrary.addressToBytes64(equitoAddress));
         app = new MockEquitoApp(address(router));
         vm.stopPrank();
     }
