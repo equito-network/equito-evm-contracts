@@ -38,13 +38,13 @@ contract EquitoAppTest is Test {
         uint256 destinationChainSelector = 2;
         bytes memory data = hex"123456";
 
-        bytes32 messageId = app.sendMessage(
+        bytes32 messageHash = app.sendMessage(
             receiverAddress,
             destinationChainSelector,
             data
         );
 
-        assertTrue(messageId != bytes32(0), "Message ID should not be zero");
+        assertTrue(messageHash != bytes32(0), "Message ID should not be zero");
     }
 
     /// @dev Tests the onlyRouter modifier
