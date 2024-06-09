@@ -6,6 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockEquitoApp} from "./mock/MockEquitoApp.sol";
 import {MockReceiver} from "./mock/MockReceiver.sol";
+import {MockVerifier} from "./mock/MockVerifier.sol";
 import {MockRouter} from "./mock/MockRouter.sol";
 import {IEquitoVerifier} from "../src/interfaces/IEquitoVerifier.sol";
 import {Errors} from "../src/libraries/Errors.sol";
@@ -13,16 +14,19 @@ import {Errors} from "../src/libraries/Errors.sol";
 /// @title EquitoAppTest
 /// @dev Test suite for the EquitoApp contract
 contract EquitoAppTest is Test {
+    MockVerifier verifier;
     MockRouter router;
     MockEquitoApp app;
 
     address constant OWNER = address(0x03132);
     address constant ALICE = address(0xA11CE);
     address constant BOB = address(0xB0B);
+    address equitoAddress = address(0x45717569746f);
 
     function setUp() public {
         vm.startPrank(OWNER);
-        router = new MockRouter();
+        verifier = new MockVerifier();
+        router = new MockRouter(1, address(verifier), address(verifier), EquitoMessageLibrary.addressToBytes64(equitoAddress));
         app = new MockEquitoApp(address(router));
         vm.stopPrank();
     }

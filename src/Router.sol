@@ -14,9 +14,12 @@ import {Errors} from "./libraries/Errors.sol";
 ///         Equito Validators will listen to the events emitted by this contract's `sendMessage` function,
 ///         to collect and relay messages to the appropriate destination chains.
 ///         Equito Validators will also deliver messages to this contract, to be routed to the appropriate receivers.
-contract Router is IRouter {
+contract Router is IRouter, IEquitoReceiver {
     /// @notice The chain selector for the chain where the Router contract is deployed.
     uint256 public immutable chainSelector;
+
+    /// @notice The Equito Protocol address.
+    bytes64 public equitoAddress;
 
     /// @notice The list of verifiers used to verify the messages.
     IEquitoVerifier[] public verifiers;
@@ -36,7 +39,8 @@ contract Router is IRouter {
     /// @param _chainSelector The chain selector of the chain where the Router contract is deployed.
     /// @notice Initializes the contract with the address of the EquitoFees contract.
     /// @param _initialVerifier The address of the initial verifier contract.
-    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees) {
+    /// @param _equitoAddress The address of the Equito Protocol.
+    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees, bytes64 memory _equitoAddress) {
         if (_initialVerifier == address(0)) {
             revert Errors.InitialVerifierZeroAddress();
         }
@@ -44,6 +48,17 @@ contract Router is IRouter {
         verifiers.push(IEquitoVerifier(_initialVerifier));
 
         equitoFees = IEquitoFees(_equitoFees);
+
+        equitoAddress = _equitoAddress;
+    }
+
+    modifier onlySovereign(EquitoMessage calldata message) {
+        if (
+            message.sourceChainSelector != 0 ||
+            message.sender.lower != equitoAddress.lower ||
+            message.sender.upper != equitoAddress.upper
+        ) revert Errors.InvalidSovereign();
+        _;
     }
 
     /// @notice Sends a cross-chain message using Equito.
@@ -172,17 +187,58 @@ contract Router is IRouter {
         emit MessagesExecuted(messages);
     }
 
+    /// @notice Receives a cross-chain message from the Router contract.
+    /// @param message The Equito message received.
+    /// @param messageData The data of the message received.
+    function receiveMessage(
+        EquitoMessage calldata message,
+        bytes calldata messageData
+    ) external override onlySovereign(message) {
+        bytes1 operation = messageData[0];
+
+        if (operation == 0x01) {
+            // Add verifier
+            address newVerifier;
+            uint256 verifierIndex;
+            bytes memory proof;
+            (, newVerifier, verifierIndex, proof) = abi.decode(
+                messageData,
+                (bytes32, address, uint256, bytes)
+            );
+
+            _addVerifier(
+                newVerifier,
+                verifierIndex,
+                proof
+            );
+        } else if (operation == 0x02) {
+            // Update the equito fees
+            address newEquitoFees;
+            (, newEquitoFees) = abi.decode(messageData, (bytes32, address));
+
+            _setEquitoFees(newEquitoFees);
+        } else if (operation == 0x03) {
+            // Update the equito address
+            bytes64 memory newEquitoAddress;
+            (, newEquitoAddress) = abi.decode(messageData, (bytes32, bytes64));
+
+            _setEquitoAddress(newEquitoAddress);
+        } else {
+            revert Errors.InvalidOperation();
+        }
+    }
+
     /// @notice Adds a new verifier to the Router contract.
     ///         It requires a proof to be provided, to ensure that the Verifier is authorized to be added,
     ///         verified by one of the existing Verifiers, determined by `verifierIndex`.
     /// @param _newVerifier The address of the new verifier.
     /// @param verifierIndex The index of the verifier used to verify the new verifier.
     /// @param proof The proof provided by the verifier.
-    function addVerifier(
+    function _addVerifier(
         address _newVerifier,
         uint256 verifierIndex,
-        bytes calldata proof
-    ) external {
+        bytes memory proof
+    ) internal {
         if (verifierIndex >= verifiers.length) {
             revert Errors.InvalidVerifierIndex();
         }
@@ -193,5 +249,22 @@ contract Router is IRouter {
         } else {
             revert Errors.InvalidNewVerifierProof(_newVerifier);
         }
+    }
+
+    /// @notice Sets the equitoFees.
+    /// @param _equitoFees The new equito fees address to set.
+    function _setEquitoFees(
+        address _equitoFees
+    ) internal {
+        equitoFees = IEquitoFees(_equitoFees);
+        emit EquitoFeesSet();
+    }
+
+    /// @notice Sets the equitoAddress.
+    /// @param _equitoAddress The new equito address to set.
+    function _setEquitoAddress(bytes64 memory _equitoAddress) internal {
+        equitoAddress.lower = _equitoAddress.lower;
+        equitoAddress.upper = _equitoAddress.upper;
+        emit EquitoAddressSet();
     }
 }
