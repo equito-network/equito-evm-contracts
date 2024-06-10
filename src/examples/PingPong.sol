@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.23;
 
-import "../EquitoApp.sol";
+import {EquitoApp} from "../EquitoApp.sol";
 import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../libraries/EquitoMessageLibrary.sol";
 
 /// @title PingPong
