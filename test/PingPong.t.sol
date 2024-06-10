@@ -10,7 +10,6 @@ import {MockRouter} from "./mock/MockRouter.sol";
 import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 
 contract PingPongTest is Test {
-    MockVerifier verifier;
     MockRouter router;
     PingPong pingPong;
 
@@ -19,14 +18,14 @@ contract PingPongTest is Test {
     address constant BOB = address(0xB0B);
     address equitoAddress = address(0x45717569746f);
 
-    event PingSent(address indexed sender, uint256 indexed destinationChainSelector, string message);
-    event PongReceived(address indexed sender, uint256 indexed sourceChainSelector, string message);
+    event PingSent(uint256 indexed destinationChainSelector, string message);
+    event PingReceived(uint256 indexed sourceChainSelector, string message);
+    event PongReceived(uint256 indexed sourceChainSelector, string message);
 
     function setUp() public {
         vm.prank(OWNER);
 
-        verifier = new MockVerifier();
-        router = new MockRouter(1, address(verifier), address(verifier), EquitoMessageLibrary.addressToBytes64(equitoAddress));
+        router = new MockRouter();
         pingPong = new PingPong(address(router));
 
         uint256[] memory chainIds = new uint256[](2);
@@ -46,9 +45,9 @@ contract PingPongTest is Test {
         string memory message = "Hello, world!";
 
         vm.expectEmit(true, true, true, true);
-        emit PingSent(address(this), destinationChainSelector, message);
+        emit PingSent(destinationChainSelector, message);
 
-        pingPong.sendPing{value: 0}(receiver, destinationChainSelector, message);
+        pingPong.sendPing{value: 0}(destinationChainSelector, message);
     }
 
     function testReceivePingAndSendPong() public {
@@ -65,6 +64,8 @@ contract PingPongTest is Test {
         });
 
         vm.prank(address(router));
+        vm.expectEmit(true, true, true, true);
+        emit PingReceived(1, pingMessage);
         pingPong.receiveMessage(message, messageData);
     }
 
@@ -84,7 +85,7 @@ contract PingPongTest is Test {
         vm.prank(address(router));
 
         vm.expectEmit(true, true, true, true);
-        emit PongReceived(ALICE, 1, pongMessage);
+        emit PongReceived(1, pongMessage);
         pingPong.receiveMessage(message, messageData);
     }
 
@@ -115,8 +116,8 @@ contract PingPongTest is Test {
 
         vm.prank(ALICE);
         vm.expectEmit(true, true, true, true);
-        emit PingSent(ALICE, destinationChainSelector, pingMessage);
-        pingPong.sendPing{value: 0}(receiver, destinationChainSelector, pingMessage);
+        emit PingSent(destinationChainSelector, pingMessage);
+        pingPong.sendPing{value: 0}(destinationChainSelector, pingMessage);
 
         // Step 2: Simulate receiving the Ping and sending Pong
         bytes memory pingMessageData = abi.encode("ping", pingMessage);
@@ -130,6 +131,8 @@ contract PingPongTest is Test {
         });
 
         vm.prank(address(router));
+        vm.expectEmit(true, true, true, true);
+        emit PingReceived(1, pingMessage);
         pingPong.receiveMessage(message1, pingMessageData);
 
         // Step 3: Simulate receiving the Pong
@@ -146,7 +149,7 @@ contract PingPongTest is Test {
 
         vm.prank(address(router));
         vm.expectEmit(true, true, true, true);
-        emit PongReceived(BOB, 2, pongMessage);
+        emit PongReceived(2, pongMessage);
         pingPong.receiveMessage(message2, pongMessageData);
     }
 }
