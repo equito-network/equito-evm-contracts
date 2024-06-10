@@ -7,7 +7,6 @@ import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
 import {bytes64, EquitoMessage} from "./libraries/EquitoMessageLibrary.sol";
 import {Errors} from "./libraries/Errors.sol";
-import {console} from "forge-std/console.sol";
 
 /// @title EquitoApp
 /// @notice This abstract contract is the base for all applications that want to leverage
