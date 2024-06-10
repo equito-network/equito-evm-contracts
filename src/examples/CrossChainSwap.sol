@@ -12,7 +12,7 @@ import {Errors} from "../libraries/Errors.sol";
 /// @notice This contract facilitates token swaps between different blockchains using the Equito protocol.
 contract CrossChainSwap is EquitoApp {
     /// @notice Event emitted when a token swap is requested.
-    /// @param messageId The unique identifier for the message.
+    /// @param messageHash The unique identifier for the message.
     /// @param destinationChainSelector The identifier of the destination blockchain.
     /// @param sourceToken The address of the source token.
     /// @param sourceAmount The amount of source tokens to be swapped.
@@ -20,7 +20,7 @@ contract CrossChainSwap is EquitoApp {
     /// @param destinationAmount The amount of destination tokens to be received.
     /// @param recipient The address of the recipient on the destination chain.
     event SwapRequested(
-        bytes32 indexed messageId,
+        bytes32 indexed messageHash,
         uint256 indexed destinationChainSelector,
         address sourceToken,
         uint256 sourceAmount,
@@ -185,7 +185,7 @@ contract CrossChainSwap is EquitoApp {
     /// @param destinationChainSelector The identifier of the destination chain.
     /// @param destinationToken The address of the destination token.
     /// @param recipient The address of the recipient on the destination chain.
-    /// @return messageId The unique identifier for the message.
+    /// @return messageHash The unique identifier for the message.
     function _swap(
         address sourceToken,
         uint256 sourceAmount,
@@ -193,7 +193,7 @@ contract CrossChainSwap is EquitoApp {
         uint256 destinationChainSelector,
         bytes calldata destinationToken,
         bytes calldata recipient
-    ) internal returns (bytes32 messageId) {
+    ) internal returns (bytes32 messageHash) {
         // Calculate the destination token amount
         uint256 destinationAmount = calculateDestinationTokenAmount(
             abi.encode(sourceToken),
@@ -212,7 +212,7 @@ contract CrossChainSwap is EquitoApp {
         });
 
         // Send the message through the router and store the returned message ID
-        messageId = router.sendMessage{value: fee}(
+        messageHash = router.sendMessage{value: fee}(
             peers[destinationChainSelector],
             destinationChainSelector,
             abi.encode(tokenAmount)
@@ -220,7 +220,7 @@ contract CrossChainSwap is EquitoApp {
 
         // Emit an event with message details
         emit SwapRequested(
-            messageId,
+            messageHash,
             destinationChainSelector,
             sourceToken,
             sourceAmount,
@@ -230,6 +230,6 @@ contract CrossChainSwap is EquitoApp {
         );
 
         // Return the message ID
-        return messageId;
+        return messageHash;
     }
 }
