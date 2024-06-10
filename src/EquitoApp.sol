@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.23;
 
-import {console} from "forge-std/Test.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {IRouter} from "./interfaces/IRouter.sol";
 import {IEquitoReceiver} from "./interfaces/IEquitoReceiver.sol";
