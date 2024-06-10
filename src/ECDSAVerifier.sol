@@ -20,9 +20,10 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     uint256 public immutable threshold = 70;
     /// @notice The current session identifier for the validator set.
     uint256 public session;
-    /// @notice The cost of sending a message in USD.
-    /// @dev The cost, denominated in USD, required to send a message. This value can be used to calculate fees for message.
-    uint256 public messageCostUsd;
+    /// @notice The cost of sending a message in USD, defaults to 1 USD.
+    /// @dev The cost required to send a message, denominated in USD, with 18 decimals.
+    ///      This value can be used to calculate fees for message.
+    uint256 public messageCostUsd = 1e18;
     /// @notice Stores the session ID and accumulated fees amount.
     mapping(uint256 => uint256) public fees;
     /// @notice Stores addresses exempt from paying fees.

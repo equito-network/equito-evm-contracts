@@ -43,7 +43,7 @@ contract ECDSAVerifierTest is Test {
         validators[2] = charleth;
 
         vm.startPrank(OWNER);
-        oracle = new MockOracle();
+        oracle = new MockOracle(100);
         verifier = new MockECDSAVerifier(
             validators,
             0,
