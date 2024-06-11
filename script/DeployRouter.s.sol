@@ -10,43 +10,43 @@ import {ECDSAVerifier} from "../src/ECDSAVerifier.sol";
 import {IEquitoFees} from "../src/interfaces/IEquitoFees.sol";
 import {IOracle} from "../src/interfaces/IOracle.sol";
 import {EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
+import {MockOracle} from "../test/mock/MockOracle.sol";
 
 /// This script is used to deploy the Router contract using the configuration determined by the env file.
 contract DeployRouter is Script {
     using stdJson for string;
 
     uint256 public chainSelector = vm.envUint("CHAIN_SELECTOR");
-    string public outputFilename = vm.envString("OUTPUT_FILENAME");
     address public equitoAddress = vm.envAddress("EQUITO_ADDRESS");
+    address[] public validators = vm.envAddress("VALIDATORS", ",");
+
+    // Token price in USD with 3 decimals
+    uint256 public tokenPriceUSD = vm.envUint("TOKEN_PRICE_USD");
 
     ECDSAVerifier public verifier;
     Router public router;
     IOracle public oracle;
 
-    address ALITH = 0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac;
-    address BALTATHAR = 0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0;
-    address CHARLETH = 0x798d4Ba9baf0064Ec19eB4F0a1a45785ae9D6DFc;
 
     function run() public {
-        string memory root = vm.projectRoot();
-        string memory basePath = string.concat(root, "/script/deployment/");
         // start broadcasting transactions
         vm.startBroadcast();
 
-        address[] memory validators = new address[](3);
-        validators[0] = ALITH;
-        validators[1] = BALTATHAR;
-        validators[2] = CHARLETH;
+        console.log("======== Deploying Mock Oracle =========");
+        oracle = new MockOracle(tokenPriceUSD * 1e15);
+        console.log(
+            "Deployed MockOracle successfully =>",
+            address(verifier)
+        );
 
-        console.log("======== Deploying ECDSAVerifier Verifier =========");
+        console.log("======== Deploying ECDSAVerifier =========");
         verifier = new ECDSAVerifier(
             validators,
             0,
-            address(oracle),
-            EquitoMessageLibrary.addressToBytes64(equitoAddress)
+            address(oracle)
         );
         console.log(
-            "Deployed ECDSAVerifier Verifier successfully =>",
+            "Deployed ECDSAVerifier successfully =>",
             address(verifier)
         );
 
@@ -54,7 +54,8 @@ contract DeployRouter is Script {
         router = new Router(
             chainSelector,
             address(verifier),
-            address(verifier)
+            address(verifier),
+            EquitoMessageLibrary.addressToBytes64(equitoAddress)
         );
         console.log("Deployed Router successfully =>", address(router));
 
@@ -66,12 +67,5 @@ contract DeployRouter is Script {
 
         // finish broadcasting transactions
         vm.stopBroadcast();
-
-        // Write to file
-        string memory path = string.concat(basePath, outputFilename);
-        vm.writeJson(
-            vm.serializeAddress("contracts", "router", address(router)),
-            path
-        );
     }
 }

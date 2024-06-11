@@ -11,6 +11,7 @@ import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/Equ
 import {Errors} from "../src/libraries/Errors.sol";
 
 contract PingPongTest is Test {
+    MockVerifier verifier;
     MockRouter router;
     PingPong pingPong;
 
@@ -28,7 +29,8 @@ contract PingPongTest is Test {
     function setUp() public {
         vm.prank(OWNER);
 
-        router = new MockRouter();
+        verifier = new MockVerifier();
+        router = new MockRouter(1, address(verifier), address(verifier), EquitoMessageLibrary.addressToBytes64(equitoAddress));
         pingPong = new PingPong(address(router));
 
         uint256[] memory chainIds = new uint256[](2);

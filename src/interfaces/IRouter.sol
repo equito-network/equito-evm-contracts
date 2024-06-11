@@ -12,21 +12,23 @@ interface IRouter {
     /// @param messageData The data of the message being sent.
     event MessageSendRequested(EquitoMessage message, bytes messageData);
 
-    /// @notice Emitted when messages are delivered to their destination.
-    /// @param messages The list of messages that were delivered.
-    event MessageSendDelivered(EquitoMessage[] messages);
-
     /// @notice Emitted when a new verifier is added.
     /// @param verifier The address of the new verifier.
     event VerifierAdded(address indexed verifier);
 
-    /// @notice Emitted when messages are successfully delivered for execution.
-    /// @param messages The list of messages that have been delivered for execution.
-    event MessagesDelivered(EquitoMessage[] messages);
+    /// @notice Emitted when a messages has successfully been delivered, ready to be executed.
+    /// @param messageHash The hash of the message that has been delivered.
+    event MessageDelivered(bytes32 messageHash);
 
-    /// @notice Emitted when messages are successfully executed.
-    /// @param messages The list of messages that have been executed.
-    event MessagesExecuted(EquitoMessage[] messages);
+    /// @notice Emitted when a messag has successfully been executed.
+    /// @param messageHash The hash of the message that has been executed.
+    event MessageExecuted(bytes32 messageHash);
+
+    /// @notice Emitted when the Equito fees are set.
+    event EquitoFeesSet();
+
+    /// @notice Event emitted when the equito address is set.
+    event EquitoAddressSet();
 
     /// @notice Sends a cross-chain message using Equito.
     /// @param receiver The address of the receiver.
@@ -69,16 +71,9 @@ interface IRouter {
         bytes[] calldata messageData
     ) external;
 
-    /// @notice Adds a new verifier to the Router contract.
-    /// @param _newVerifier The address of the new verifier.
-    /// @param verifierIndex The index of the verifier used to verify the new verifier.
-    /// @param proof The proof provided by the verifier.
-    function addVerifier(
-        address _newVerifier,
-        uint256 verifierIndex,
-        bytes calldata proof
-    ) external;
-
     /// @notice Returns the chain selector of the current chain.
     function chainSelector() external view returns (uint256);
+
+    /// @notice Returns the equito address.
+    function equitoAddress() external view returns (bytes32, bytes32);
 }

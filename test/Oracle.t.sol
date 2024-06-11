@@ -12,7 +12,7 @@ contract OracleTest is Test {
     MockOracle oracle;
 
     function setUp() public {
-        oracle = new MockOracle();
+        oracle = new MockOracle(100);
     }
     
     /// @notice Tests the retrieval of the token price in USD from the Oracle contract.

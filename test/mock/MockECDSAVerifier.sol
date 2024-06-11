@@ -12,9 +12,8 @@ contract MockECDSAVerifier is ECDSAVerifier {
     constructor(
         address[] memory _validators,
         uint256 _session,
-        address _oracle,
-        bytes64 memory _equitoAddress
-    ) ECDSAVerifier(_validators, _session, _oracle, _equitoAddress) {}
+        address _oracle
+    ) ECDSAVerifier(_validators, _session, _oracle) {}
 
     function transferFees(address liquidityProvider, uint256 amount) external {
         _transferFees(liquidityProvider, amount);
@@ -24,9 +23,6 @@ contract MockECDSAVerifier is ECDSAVerifier {
         _setMessageCostUsd(_messageCostUsd);
     }
 
-    function setEquitoAddress(bytes64 memory _equitoAddress) external {
-        _setEquitoAddress(_equitoAddress);
-    }
     
     function addNoFeeAddress(address noFeeAddress) external {
         _addNoFeeAddress(noFeeAddress);
