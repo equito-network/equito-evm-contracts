@@ -186,9 +186,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     function payFee(address payer) external payable {
         uint256 fee = _getFee();
 
-        console.logUint(fee);
-        console.logUint(msg.value);
-
         if (fee > msg.value) {
             revert Errors.InsufficientFee();
         }
