@@ -197,6 +197,13 @@ contract Router is IRouter, IEquitoReceiver {
         }
     }
 
+    /// @notice Gets the current fee amount required to send a message.
+    /// @param sender The address of the Message Sender, usually an Equito App.
+    /// @return The current fee amount in wei.
+    function getFee(address sender) external view returns (uint256) {
+        return equitoFees.getFee(sender);
+    }
+
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
     /// @param messageData The data of the message received.

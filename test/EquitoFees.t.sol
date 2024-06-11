@@ -31,7 +31,7 @@ contract EquitoFeesTest is Test {
     
     /// @notice Test that the initial fee is set correctly.
     function testInitialFee() public {
-        uint256 fee = equitoFees.getFee();
+        uint256 fee = equitoFees.getFee(ALICE);
         assertEq(fee, INITIAL_FEE, "Initial fee should be set correctly");
     }
 
@@ -51,6 +51,6 @@ contract EquitoFeesTest is Test {
         vm.prank(ALICE);
 
         vm.expectRevert(Errors.InsufficientFee.selector);
-        equitoFees.payFee{value: 0.05 ether}(ALICE);
+        equitoFees.payFee{value: INITIAL_FEE / 2}(ALICE);
     }
 }
