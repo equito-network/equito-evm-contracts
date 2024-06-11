@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {IRouter} from "../../src/Router.sol";
 import {IEquitoFees} from "../../src/interfaces/IEquitoFees.sol";
-import {bytes64, EquitoMessage} from "../../src/libraries/EquitoMessageLibrary.sol";
+import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../../src/libraries/EquitoMessageLibrary.sol";
 import {IEquitoVerifier} from "../../src/interfaces/IEquitoVerifier.sol";
 
 contract MockRouter is IRouter {
