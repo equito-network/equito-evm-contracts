@@ -186,6 +186,9 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     function payFee(address payer) external payable {
         uint256 fee = _getFee();
 
+        console.logUint(fee);
+        console.logUint(msg.value);
+
         if (fee > msg.value) {
             revert Errors.InsufficientFee();
         }
@@ -299,7 +302,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             revert Errors.InvalidTokenPriceFromOracle();
         }
 
-        return messageCostUsd / tokenPriceUsd;
+        return (messageCostUsd * 1e18) / tokenPriceUsd;
     }
 
     /// @notice Sets the cost of sending a message in USD.
