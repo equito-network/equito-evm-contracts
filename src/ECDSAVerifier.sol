@@ -299,7 +299,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
             revert Errors.InvalidTokenPriceFromOracle();
         }
 
-        return messageCostUsd / tokenPriceUsd;
+        return (messageCostUsd * 1e18) / tokenPriceUsd;
     }
 
     /// @notice Sets the cost of sending a message in USD.

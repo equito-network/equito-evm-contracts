@@ -15,9 +15,14 @@ contract ECDSAVerifierTest is Test {
     MockOracle oracle;
     MockRouter router;
 
+
+    uint256 messageCostUsd = 1_000;
+    uint256 oracleTokenPriceUsd = 3500_000;
+
     address constant OWNER = address(0x03132);
     address constant ALICE = address(0xA11CE);
     address constant BOB = address(0xB0B);
+    address constant CHARLIE = address(0xC04);
     address equitoAddress = address(0x45717569746f);
 
     event FeePaid(address indexed payer, uint256 amount);
@@ -43,7 +48,7 @@ contract ECDSAVerifierTest is Test {
         validators[2] = charleth;
 
         vm.startPrank(OWNER);
-        oracle = new MockOracle(100);
+        oracle = new MockOracle(oracleTokenPriceUsd);
         verifier = new MockECDSAVerifier(
             validators,
             0,
@@ -51,7 +56,7 @@ contract ECDSAVerifierTest is Test {
         );
         router = new MockRouter(1, address(verifier), address(verifier), EquitoMessageLibrary.addressToBytes64(equitoAddress));
         verifier.setRouter(address(router));
-        verifier.setMessageCostUsd(1000);
+        verifier.setMessageCostUsd(messageCostUsd);
         vm.stopPrank();
     }
 
@@ -260,7 +265,7 @@ contract ECDSAVerifierTest is Test {
 
     /// @notice Tests getting the fee.
     function testGetFee() external {
-        uint256 expectedFee = 1000 / 100;
+        uint256 expectedFee = (messageCostUsd * 1e18) / oracleTokenPriceUsd;
         uint256 fee = verifier.getFee();
 
         assertEq(fee, expectedFee, "Incorrect fee calculated");
@@ -268,7 +273,7 @@ contract ECDSAVerifierTest is Test {
 
     /// @notice Tests getting the fee for no fee address.
     function testGetFeeForNoFeeAddress() external {
-        uint256 expectedFee = 1000 / 100;
+        uint256 expectedFee = (messageCostUsd * 1e18) / oracleTokenPriceUsd;
         uint256 fee = verifier.getFee();
         assertEq(fee, expectedFee, "Incorrect fee calculated");
 
@@ -310,15 +315,14 @@ contract ECDSAVerifierTest is Test {
 
     /// @notice Test paying the fee with insufficient amount.
     function testPayFeeInsufficient() public {
-        vm.deal(ALICE, 1 ether);
-        vm.prank(ALICE);
+        vm.deal(CHARLIE, 1 ether);
+        vm.prank(CHARLIE);
 
         uint256 fee = verifier.getFee();
         uint256 insufficientFee = 1;
-        uint256 messageCostUsd = verifier.messageCostUsd();
 
         vm.expectRevert(Errors.InsufficientFee.selector);
-        verifier.payFee{value: insufficientFee}(ALICE);
+        verifier.payFee{value: insufficientFee}(CHARLIE);
     }
 
     /// @notice Test adding an address to the noFee list
