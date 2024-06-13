@@ -203,6 +203,10 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         EquitoMessage calldata message,
         bytes calldata messageData
     ) external override onlySovereign(message) {
+        if (msg.sender != address(router)) {
+            revert Errors.InvalidRouter(msg.sender);
+        }
+
         bytes1 operation = messageData[0];
 
         if (operation == 0x01) {
