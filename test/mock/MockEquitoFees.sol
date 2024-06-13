@@ -14,17 +14,17 @@ contract MockEquitoFees is IEquitoFees {
 
     /// @notice Returns the fixed fee amount.
     /// @return The fixed fee amount, which is 0.1 ether.
-    function getFee() external view returns (uint256) {
+    function getFee(address _sender) external view returns (uint256) {
         return INITIAL_FEE;
     }
 
     /// @notice Allows users to pay the fee. This function should be called with 0.1 ether sent as msg.value.
-    /// @param payer The address of the original caller who is paying the fee.
-    function payFee(address payer) external payable {
+    /// @param sender The address of the Message Sender, usually an Equito App.
+    function payFee(address sender) external payable {
         if (INITIAL_FEE > msg.value) {
             revert Errors.InsufficientFee();
         }
 
-        emit FeePaid(payer, msg.value);
+        emit FeePaid(sender, msg.value);
     }
 }

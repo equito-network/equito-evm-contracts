@@ -283,9 +283,7 @@ contract RouterTest is Test {
 
         router.deliverMessages(messages, 0, abi.encode(1));
 
-        assertTrue(
-            router.storedMessages(keccak256(abi.encode(messages[0])))
-        );
+        assertTrue(router.storedMessages(keccak256(abi.encode(messages[0]))));
     }
 
     /// @dev Tests delivering and executing of messages with an invalid verifier index
@@ -400,16 +398,15 @@ contract RouterTest is Test {
         router.executeMessages(messages, messageData);
 
         assertFalse(
-            keccak256(abi.encode(receiver.getMessage())) == keccak256(abi.encode(message)),
+            keccak256(abi.encode(receiver.getMessage())) ==
+                keccak256(abi.encode(message)),
             "Undelivered message should not be executed"
         );
     }
 
     /// @notice Tests the receive message with add verifier command.
     function testReceiveMessageAddVerifier() external {
-        bytes memory proof = abi.encode("proof");
-
-        bytes memory data = abi.encode(bytes1(0x01), BOB, 0, proof);
+        bytes memory data = abi.encode(bytes1(0x01), BOB);
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
@@ -420,6 +417,7 @@ contract RouterTest is Test {
             hashedData: keccak256(data)
         });
 
+        vm.prank(address(router));
         vm.expectEmit(true, true, true, true);
         emit VerifierAdded(BOB);
         router.receiveMessage(message, data);
@@ -429,51 +427,6 @@ contract RouterTest is Test {
             BOB,
             "The new verifier should be BOB"
         );
-    }
-
-    /// @notice Tests the receive message with add verifier command when invalid verifier index received.
-    function testReceiveMessageAddVerifierInvalidVerifierIndex() external {
-        bytes memory proof = abi.encode("proof");
-
-        bytes memory data = abi.encode(bytes1(0x01), BOB, 2, proof);
-
-        EquitoMessage memory message = EquitoMessage({
-            blockNumber: 0,
-            sourceChainSelector: 0,
-            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 1,
-            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            hashedData: keccak256(data)
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector)
-        );
-        router.receiveMessage(message, data);
-    }
-
-    /// @notice Tests the receive message with add verifier command when invalid proof received.
-    function testReceiveMessageAddVerifierInvalidProof() external {
-        bytes memory invalidProof = "";
-
-        bytes memory data = abi.encode(bytes1(0x01), BOB, 0, invalidProof);
-
-        EquitoMessage memory message = EquitoMessage({
-            blockNumber: 0,
-            sourceChainSelector: 0,
-            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 1,
-            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
-            hashedData: keccak256(data)
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Errors.InvalidNewVerifierProof.selector,
-                address(BOB)
-            )
-        );
-        router.receiveMessage(message, data);
     }
 
     /// @notice Tests the receive message with set equito fees command.
@@ -493,6 +446,7 @@ contract RouterTest is Test {
             hashedData: keccak256(data)
         });
 
+        vm.prank(address(router));
         vm.expectEmit(true, true, true, true);
         emit EquitoFeesSet();
         router.receiveMessage(message, data);
@@ -524,6 +478,7 @@ contract RouterTest is Test {
             hashedData: keccak256(data)
         });
 
+        vm.prank(address(router));
         vm.expectEmit(true, true, true, true);
         emit EquitoAddressSet();
         router.receiveMessage(message, data);
@@ -569,7 +524,12 @@ contract RouterTest is Test {
         bytes[] memory messageData = new bytes[](1);
         messageData[0] = data;
 
-        router.deliverAndExecuteMessages(messages, messageData, 0, abi.encode(1));
+        router.deliverAndExecuteMessages(
+            messages,
+            messageData,
+            0,
+            abi.encode(1)
+        );
 
         Vm.Log[] memory entriesDeliverExecute = vm.getRecordedLogs();
         assertEq(entriesDeliverExecute.length, 0, "No logs should be emitted");
@@ -581,7 +541,11 @@ contract RouterTest is Test {
             router.isDuplicateMessage(keccak256(abi.encode(messages[0]))),
             "Message should not be marked as duplicate"
         );
-        assertNotEq(receiver.getMessage().hashedData, message.hashedData, "Message should not be received");
+        assertNotEq(
+            receiver.getMessage().hashedData,
+            message.hashedData,
+            "Message should not be received"
+        );
 
         router.deliverMessages(messages, 0, abi.encode(1));
         Vm.Log[] memory entriesDeliver = vm.getRecordedLogs();
@@ -598,7 +562,10 @@ contract RouterTest is Test {
             router.isDuplicateMessage(keccak256(abi.encode(messages[0]))),
             "Message should not be marked as duplicate"
         );
-        assertNotEq(receiver.getMessage().hashedData, message.hashedData, "Message should not be received");
-
+        assertNotEq(
+            receiver.getMessage().hashedData,
+            message.hashedData,
+            "Message should not be received"
+        );
     }
 }

@@ -197,6 +197,13 @@ contract Router is IRouter, IEquitoReceiver {
         }
     }
 
+    /// @notice Gets the current fee amount required to send a message.
+    /// @param sender The address of the Message Sender, usually an Equito App.
+    /// @return The current fee amount in wei.
+    function getFee(address sender) external view returns (uint256) {
+        return equitoFees.getFee(sender);
+    }
+
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
     /// @param messageData The data of the message received.
@@ -204,19 +211,18 @@ contract Router is IRouter, IEquitoReceiver {
         EquitoMessage calldata message,
         bytes calldata messageData
     ) external override onlySovereign(message) {
+        if (msg.sender != address(this)) {
+            revert Errors.InvalidRouter(msg.sender);
+        }
+
         bytes1 operation = messageData[0];
 
         if (operation == 0x01) {
             // Add verifier
             address newVerifier;
-            uint256 verifierIndex;
-            bytes memory proof;
-            (, newVerifier, verifierIndex, proof) = abi.decode(
-                messageData,
-                (bytes32, address, uint256, bytes)
-            );
+            (, newVerifier) = abi.decode(messageData, (bytes32, address));
 
-            _addVerifier(newVerifier, verifierIndex, proof);
+            _addVerifier(newVerifier);
         } else if (operation == 0x02) {
             // Update the equito fees
             address newEquitoFees;
@@ -235,31 +241,10 @@ contract Router is IRouter, IEquitoReceiver {
     }
 
     /// @notice Adds a new verifier to the Router contract.
-    ///         It requires a proof to be provided, to ensure that the Verifier is authorized to be added,
-    ///         verified by one of the existing Verifiers, determined by `verifierIndex`.
     /// @param _newVerifier The address of the new verifier.
-    /// @param verifierIndex The index of the verifier used to verify the new verifier.
-    /// @param proof The proof provided by the verifier.
-    function _addVerifier(
-        address _newVerifier,
-        uint256 verifierIndex,
-        bytes memory proof
-    ) internal {
-        if (verifierIndex >= verifiers.length) {
-            revert Errors.InvalidVerifierIndex();
-        }
-
-        if (
-            verifiers[verifierIndex].verifySignatures(
-                keccak256(abi.encodePacked(_newVerifier)),
-                proof
-            )
-        ) {
-            verifiers.push(IEquitoVerifier(_newVerifier));
-            emit VerifierAdded(_newVerifier);
-        } else {
-            revert Errors.InvalidNewVerifierProof(_newVerifier);
-        }
+    function _addVerifier(address _newVerifier) internal {
+        verifiers.push(IEquitoVerifier(_newVerifier));
+        emit VerifierAdded(_newVerifier);
     }
 
     /// @notice Sets the equitoFees.
