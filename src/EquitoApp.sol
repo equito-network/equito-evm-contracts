@@ -84,14 +84,10 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
         bytes calldata messageData
     ) external override onlyRouter {
         bytes64 memory peerAddress = peers[message.sourceChainSelector];
-        console.logBytes32(peerAddress.lower);
-        console.logBytes32(message.sender.lower);
-        console.logBytes32(peerAddress.upper);
-        console.logBytes32(message.sender.upper);
+
         if (peerAddress.lower != message.sender.lower || peerAddress.upper != message.sender.upper) {
             _receiveMessageFromNonPeer(message, messageData);
         } else {
-            console.logUint(22222);
             _receiveMessageFromPeer(message, messageData);
         }
     }

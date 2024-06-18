@@ -27,8 +27,6 @@ contract MockEquitoTokenApp is EquitoTokenApp {
         uint256 amount,
         bytes64 memory tokenAddress
     ) internal override {
-        console.logAddress(msg.sender);
-        console.logUint(amount);
         emit TokenReceived(msg.sender, amount, tokenAddress, message.sourceChainSelector);
     }
 }

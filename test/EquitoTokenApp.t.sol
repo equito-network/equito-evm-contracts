@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.23;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {MockEquitoTokenApp} from "./mock/MockEquitoTokenApp.sol";
 import {MockReceiver} from "./mock/MockReceiver.sol";
