@@ -60,4 +60,7 @@ library Errors {
 
     /// @notice Thrown when attempting to set the router, but the router is already set.
     error RouterAlreadySet();
+
+    /// @notice Thrown when the provided peer address is invalid.
+    error InvalidPeerAddress();
 }
