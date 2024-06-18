@@ -2,16 +2,15 @@
 
 pragma solidity ^0.8.23;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import {EquitoApp} from "./EquitoApp.sol";
-import {IRouter} from "./interfaces/IRouter.sol";
 import {bytes64, EquitoMessage} from "./libraries/EquitoMessageLibrary.sol";
 import {Errors} from "./libraries/Errors.sol";
 
 /// @title EquitoTokenApp
-/// @notice Improved version of EquitoApp for token transfers and swaps.
-///         EquitoTokenApp extends EquitoApp to handle cross-chain messages
-///         with `uint256 amount` and `bytes64 tokenAddress` instead of arbitrary data.
+/// @notice This abstract contracts is the base for all applications that want to leverage
+///         the Equito cross-chain messaging protocol for cross-chain tokens or token transfers.
+/// @dev EquitoTokenApp extends EquitoApp to simplify handling cross-chain token operations,
+///      replacing arbitrary data with `uint256 amount` and `bytes64 tokenAddress`.
 abstract contract EquitoTokenApp is EquitoApp {
     /// @notice Initializes the EquitoTokenApp contract and sets the router address.
     /// @param _router The address of the router contract.
