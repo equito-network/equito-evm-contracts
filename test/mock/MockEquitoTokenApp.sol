@@ -19,14 +19,16 @@ contract MockEquitoTokenApp is EquitoTokenApp {
     constructor(address _router) EquitoTokenApp(_router) {}
 
     /// @notice Mock implementation for handling token transfers from a peer.
-    /// @param message The Equito message received.
+    /// @param sourceChainSelector The identifier of the source chain.
+    /// @param sender The address of the sender.
     /// @param amount The amount of tokens transferred.
     /// @param tokenAddress The address of the token contract.
     function _receiveTokenFromPeer(
-        EquitoMessage calldata message,
+        uint256 sourceChainSelector,
+        bytes64 memory sender,
         uint256 amount,
         bytes64 memory tokenAddress
     ) internal override {
-        emit TokenReceived(msg.sender, amount, tokenAddress, message.sourceChainSelector);
+        emit TokenReceived(msg.sender, amount, tokenAddress, sourceChainSelector);
     }
 }

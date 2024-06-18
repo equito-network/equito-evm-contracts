@@ -81,7 +81,7 @@ contract EquitoTokenAppTest is Test {
             hashedData: keccak256(abi.encode(amount, tokenAddress))
         });
 
-        bytes memory messageData = abi.encode(amount, tokenAddress);
+        bytes memory messageData = abi.encode(destinationChainSelector, EquitoMessageLibrary.addressToBytes64(destinationEquitoAddress), amount, tokenAddress);
 
         vm.expectEmit(true, true, true, true);
         emit TokenReceived(address(router), amount, tokenAddress, destinationChainSelector);
@@ -102,7 +102,7 @@ contract EquitoTokenAppTest is Test {
             hashedData: keccak256(abi.encode(amount, tokenAddress))
         });
 
-        bytes memory messageData = abi.encode(amount, tokenAddress);
+        bytes memory messageData = abi.encode(destinationChainSelector, EquitoMessageLibrary.addressToBytes64(nonPeerAddress), amount, tokenAddress);
         vm.expectRevert(Errors.InvalidMessageSender.selector);
 
         vm.prank(address(router));

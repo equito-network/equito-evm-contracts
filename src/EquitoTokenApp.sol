@@ -58,8 +58,14 @@ abstract contract EquitoTokenApp is EquitoApp {
         EquitoMessage calldata message,
         bytes calldata messageData
     ) internal override {
-        (uint256 amount, bytes64 memory tokenAddress) = abi.decode(messageData, (uint256, bytes64));
-        _receiveTokenFromPeer(message, amount, tokenAddress);
+        (
+            uint256 sourceChainSelector,
+            bytes64 memory sender,
+            uint256 amount, 
+            bytes64 memory tokenAddress
+        ) = abi.decode(messageData, (uint256, bytes64, uint256, bytes64));
+
+        _receiveTokenFromPeer(sourceChainSelector, sender, amount, tokenAddress);
     }
 
     /// @notice Handles the reception of a cross-chain message from a non-peer.
@@ -70,27 +76,37 @@ abstract contract EquitoTokenApp is EquitoApp {
         EquitoMessage calldata message,
         bytes calldata messageData
     ) internal override {
-        (uint256 amount, bytes64 memory tokenAddress) = abi.decode(messageData, (uint256, bytes64));
-        _receiveTokenFromNonPeer(message, amount, tokenAddress);
+        (
+            uint256 sourceChainSelector,
+            bytes64 memory sender,
+            uint256 amount, 
+            bytes64 memory tokenAddress
+        ) = abi.decode(messageData, (uint256, bytes64, uint256, bytes64));
+
+        _receiveTokenFromNonPeer(sourceChainSelector, sender, amount, tokenAddress);
     }
 
     /// @notice Handle the logic for token transfer from a peer.
-    /// @param message The Equito message received.
+    /// @param sourceChainSelector The identifier of the source chain.
+    /// @param sender The address of the sender.
     /// @param amount The amount of tokens transferred.
     /// @param tokenAddress The address of the token contract.
     function _receiveTokenFromPeer(
-        EquitoMessage calldata message,
+        uint256 sourceChainSelector,
+        bytes64 memory sender,
         uint256 amount,
         bytes64 memory tokenAddress
     ) internal virtual {}
 
     /// @notice Handle the logic for token transfer from a non-peer.
     ///         The default implementation reverts the transaction.
-    /// @param message The Equito message received.
+    /// @param sourceChainSelector The identifier of the source chain.
+    /// @param sender The address of the sender.
     /// @param amount The amount of tokens transferred.
     /// @param tokenAddress The address of the token contract.
     function _receiveTokenFromNonPeer(
-        EquitoMessage calldata message,
+        uint256 sourceChainSelector,
+        bytes64 memory sender,
         uint256 amount,
         bytes64 memory tokenAddress
     ) internal virtual {
