@@ -3,8 +3,8 @@
 pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {EquitoApp, EquitoMessageLibrary} from "./EquitoApp.sol";
-import {bytes64} from "./libraries/EquitoMessageLibrary.sol";
+import {EquitoApp} from "./EquitoApp.sol";
+import {bytes64, EquitoMessage, EquitoMessageLibrary} from "./libraries/EquitoMessageLibrary.sol";
 
 /// @title EquitoERC20
 /// @notice This contract implements a cross-chain ERC20 token that can be
@@ -46,8 +46,11 @@ contract EquitoERC20 is EquitoApp, ERC20 {
     ///         Mints the appropriate amount of tokens to the receiver address.
     /// @param message The Equito message received.
     /// @param messageData The data of the message received.
-    function _receiveMessageFromPeer(message, messageData) internal override {
-        (bytes64 receiver, uint256 amount) = abi.decode(
+    function _receiveMessageFromPeer(
+        EquitoMessage calldata message,
+        bytes calldata messageData
+    ) internal override {
+        (bytes64 memory receiver, uint256 amount) = abi.decode(
             messageData,
             (bytes64, uint256)
         );
