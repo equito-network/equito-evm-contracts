@@ -63,7 +63,6 @@ contract CrossChainSwap is EquitoApp {
         uint256 destinationChainSelector,
         bytes memory destinationToken
     ) public view returns (uint256) {
-        IRouter router = IRouter(router);
         return
             (amount * tokenPrice[router.chainSelector()][sourceToken]) /
             tokenPrice[destinationChainSelector][destinationToken];
@@ -201,9 +200,6 @@ contract CrossChainSwap is EquitoApp {
             destinationChainSelector,
             destinationToken
         );
-
-        // Initialize a router client instance to interact with cross-chain router
-        IRouter router = IRouter(router);
 
         TokenAmount memory tokenAmount = TokenAmount({
             token: destinationToken,

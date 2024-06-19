@@ -55,24 +55,6 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
         }
     }
 
-    /// @notice Sends a cross-chain message using Equito.
-    /// @param receiver The address of the receiver.
-    /// @param destinationChainSelector The identifier of the destination chain.
-    /// @param data The message data.
-    /// @return The message ID.
-    function sendMessage(
-        bytes64 calldata receiver,
-        uint256 destinationChainSelector,
-        bytes calldata data
-    ) external payable returns (bytes32) {
-        return
-            router.sendMessage{value: msg.value}(
-                receiver,
-                destinationChainSelector,
-                data
-            );
-    }
-
     /// @notice Receives a cross-chain message from the Router Contract.
     ///         It is a wrapper function for the `_receiveMessage` function, that needs to be overridden.
     ///         Only the Router Contract is allowed to call this function.

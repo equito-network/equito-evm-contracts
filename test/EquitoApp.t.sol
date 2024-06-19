@@ -31,22 +31,6 @@ contract EquitoAppTest is Test {
         vm.stopPrank();
     }
 
-    function testSendMessage() public {
-        bytes64 memory receiverAddress = EquitoMessageLibrary.addressToBytes64(
-            address(app)
-        );
-        uint256 destinationChainSelector = 2;
-        bytes memory data = hex"123456";
-
-        bytes32 messageHash = app.sendMessage(
-            receiverAddress,
-            destinationChainSelector,
-            data
-        );
-
-        assertTrue(messageHash != bytes32(0), "Message ID should not be zero");
-    }
-
     /// @dev Tests the onlyRouter modifier
     function testOnlyRouterModifier() public {
         vm.prank(ALICE);
