@@ -143,7 +143,32 @@ contract ECDSAVerifierTest is Test {
         return abi.encodePacked(r, s, v);
     }
 
-    /// @notice Tests the verification of messages.
+    /// @notice Tests the verification of a single message.
+    function testVerifyMessages() public {
+        (address alith, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: EquitoMessageLibrary.addressToBytes64(alith),
+            destinationChainSelector: 2,
+            receiver: EquitoMessageLibrary.addressToBytes64(alith),
+            hashedData: keccak256(abi.encode("Hello, World!"))
+        });
+        bytes32 messageHash = keccak256(abi.encode(message));
+
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
+        );
+
+        console.log(verifier.verifyMessage(message, proof));
+    }
+
+    /// @notice Tests the verification of a single message using verifyMessages.
     function testVerifyMessages() public {
         (address alith, uint256 alithSecret) = makeAddrAndKey("alith");
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
@@ -254,28 +279,6 @@ contract ECDSAVerifierTest is Test {
         bytes memory proof = "";
 
         assert(!verifier.verifyMessages(messages, proof));
-    }
-
-    /// @notice Tests the verification of signatures with an invalid proof length, which should fail.
-    function testVerifySignaturesWithInvalidProofLengthFails() public view {
-        bytes32 messageHash = keccak256(abi.encode("Hello, World!"));
-        bytes memory proof = "0x";
-
-        assert(!verifier.verifySignatures(messageHash, proof));
-    }
-
-    /// @notice Tests the verification of duplicate signatures, which should fail.
-    function testVerifyDuplicateSignaturesFails() public {
-        (, uint256 alithSecret) = makeAddrAndKey("alith");
-        bytes32 messageHash = keccak256(abi.encode("Hello, World!"));
-
-        bytes memory proof = bytes.concat(
-            signMessage(messageHash, alithSecret),
-            signMessage(messageHash, alithSecret),
-            signMessage(messageHash, alithSecret)
-        );
-
-        assert(!verifier.verifySignatures(messageHash, proof));
     }
 
     /// @notice Tests getting the fee.

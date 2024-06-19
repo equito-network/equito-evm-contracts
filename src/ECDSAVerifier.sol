@@ -83,6 +83,17 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         router = IRouter(_router);
     }
 
+    /// @notice Verifies an `EquitoMessage` has been signed by a sufficient number of Validators.
+    /// @param message The `EquitoMessage` to verify.
+    /// @param proof The concatenated ECDSA signatures from the validators.
+    /// @return True if the message is verified successfully, otherwise false.
+    function verifyMessage(
+        EquitoMessage calldata message,
+        bytes calldata proof
+    ) external returns (bool) {
+        return this.verifySignatures(keccak256(abi.encode(messages[0])), proof);
+    }
+
     /// @notice Verifies that a set of `EquitoMessage` instances have been signed by a sufficient number of Validators.
     /// @param messages The array of `EquitoMessage` instances to verify.
     /// @param proof The concatenated ECDSA signatures from the validators.
@@ -116,7 +127,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     function verifySignatures(
         bytes32 hash,
         bytes memory proof
-    ) external view override returns (bool) {
+    ) internal view returns (bool) {
         if (proof.length % 65 != 0) return false;
 
         uint256 validatorsLength = validators.length;
