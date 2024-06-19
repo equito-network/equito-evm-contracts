@@ -46,7 +46,11 @@ contract PingPong is EquitoApp {
         bytes memory data = abi.encode("ping", message);
         bytes64 memory receiver = peers[destinationChainSelector];
 
-        bytes32 messageHash = this.sendMessage(receiver, destinationChainSelector, data);
+        bytes32 messageHash = router.sendMessage{value: msg.value}(
+            receiver, 
+            destinationChainSelector, 
+            data
+            );
         emit PingSent(destinationChainSelector, messageHash);
     }
 
@@ -73,7 +77,11 @@ contract PingPong is EquitoApp {
         bytes memory data = abi.encode("pong", message);
         bytes64 memory receiver = peers[destinationChainSelector];
 
-        bytes32 messageHash = this.sendMessage(receiver, destinationChainSelector, data);
+        bytes32 messageHash = router.sendMessage{value: msg.value}(
+            receiver, 
+            destinationChainSelector, 
+            data
+        );
         emit PongSent(destinationChainSelector, messageHash);
     }
 }
