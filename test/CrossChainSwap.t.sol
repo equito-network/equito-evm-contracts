@@ -38,7 +38,12 @@ contract CrossChainSwapTest is Test {
         verifier = new MockVerifier();
         equitoFees = new MockEquitoFees();
         receiver = new MockReceiver();
-        router = new Router(1, address(verifier), address(equitoFees), EquitoMessageLibrary.addressToBytes64(equitoAddress));
+        router = new Router(
+            1,
+            address(verifier),
+            address(equitoFees),
+            EquitoMessageLibrary.addressToBytes64(equitoAddress)
+        );
         swap = new CrossChainSwap(address(router));
         token0 = new MockERC20("Token0", "TK0", 1_000_000 ether);
 
@@ -237,11 +242,12 @@ contract CrossChainSwapTest is Test {
         assertEq(aliceBalanceAfter, 0);
 
         uint256 bobBalanceBefore = token0.balanceOf(BOB);
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = message;
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(data);
-        router.deliverAndExecuteMessages(messages, messageData, 0, bytes("0"));
+        router.deliverAndExecuteMessage(
+            message,
+            abi.encode(data),
+            0,
+            bytes("0")
+        );
         uint256 bobBalanceAfter = token0.balanceOf(BOB);
         assertEq(bobBalanceBefore, 0);
         assertEq(bobBalanceAfter, 500);
@@ -309,11 +315,12 @@ contract CrossChainSwapTest is Test {
         assertEq(aliceBalanceAfter, 1_000);
 
         uint256 bobBalanceBefore = BOB.balance;
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = message;
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(data);
-        router.deliverAndExecuteMessages(messages, messageData, 0, bytes("0"));
+        router.deliverAndExecuteMessage(
+            message,
+            abi.encode(data),
+            0,
+            bytes("0")
+        );
         uint256 bobBalanceAfter = BOB.balance;
         assertEq(bobBalanceBefore, 0);
         assertEq(bobBalanceAfter, 2000);

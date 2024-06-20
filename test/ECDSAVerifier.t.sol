@@ -74,20 +74,18 @@ contract ECDSAVerifierTest is Test {
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
         (, uint256 charlethSecret) = makeAddrAndKey("charleth");
 
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(bytes1(0x07));
+        bytes memory messageData = abi.encode(bytes1(0x07));
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
+        EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
+            hashedData: keccak256(messageData)
         });
 
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes32 messageHash = keccak256(abi.encode(message));
 
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),
@@ -96,7 +94,7 @@ contract ECDSAVerifierTest is Test {
         );
 
         vm.expectRevert(Errors.InvalidOperation.selector);
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+        router.deliverAndExecuteMessage(message, messageData, 0, proof);
     }
 
     /// @dev Tests the onlySovereign modifier with an invalid sender
@@ -144,7 +142,7 @@ contract ECDSAVerifierTest is Test {
     }
 
     /// @notice Tests the verification of a single message.
-    function testVerifyMessages() public {
+    function testVerifyMessage() public {
         (address alith, uint256 alithSecret) = makeAddrAndKey("alith");
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
         (, uint256 charlethSecret) = makeAddrAndKey("charleth");
@@ -169,7 +167,7 @@ contract ECDSAVerifierTest is Test {
     }
 
     /// @notice Tests the verification of a single message using verifyMessages.
-    function testVerifyMessages() public {
+    function testVerifyMessagesSingleMessage() public {
         (address alith, uint256 alithSecret) = makeAddrAndKey("alith");
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
         (, uint256 charlethSecret) = makeAddrAndKey("charleth");
@@ -194,7 +192,7 @@ contract ECDSAVerifierTest is Test {
         console.log(verifier.verifyMessages(messages, proof));
     }
 
-    function testVerifyMultipleMessages() public {
+    function testVerifyMessagesMultipleMessages() public {
         (address alith, uint256 alithSecret) = makeAddrAndKey("alith");
         (address baltathar, uint256 baltatharSecret) = makeAddrAndKey(
             "baltathar"
@@ -251,26 +249,6 @@ contract ECDSAVerifierTest is Test {
         );
 
         console.log(verifier.verifyMessages(messages, proof));
-    }
-
-    /// @notice Tests the updating of validators.
-    function testUpdateValidators() public {
-        (address charleth, ) = makeAddrAndKey("charleth");
-
-        uint256 session = verifier.session();
-
-        address[] memory validators = new address[](1);
-        validators[0] = charleth;
-
-        verifier.updateValidators(validators);
-
-        assert(verifier.validators(0) == charleth);
-        assertEq(verifier.session(), session + 1);
-
-        vm.expectRevert();
-        console.log(verifier.validators(1));
-
-        console.log("Validators updated successfully!");
     }
 
     /// @notice Tests the verification of empty messages, which should fail.
@@ -537,20 +515,22 @@ contract ECDSAVerifierTest is Test {
         address[] memory validators = new address[](1);
         validators[0] = charleth;
 
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(bytes1(0x01), session, validators);
+        bytes memory messageData = abi.encode(
+            bytes1(0x01),
+            session,
+            validators
+        );
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
+        EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
+            hashedData: keccak256(messageData)
         });
 
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes32 messageHash = keccak256(abi.encode(message));
 
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),
@@ -560,7 +540,7 @@ contract ECDSAVerifierTest is Test {
 
         vm.expectEmit(true, true, true, true);
         emit ValidatorSetUpdated();
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+        router.deliverAndExecuteMessage(message, messageData, 0, proof);
 
         assert(verifier.validators(0) == charleth);
         assertEq(verifier.session(), session + 1);
@@ -576,20 +556,22 @@ contract ECDSAVerifierTest is Test {
 
         address[] memory validators = new address[](1);
 
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(bytes1(0x01), session + 1, validators);
+        bytes memory messageData = abi.encode(
+            bytes1(0x01),
+            session + 1,
+            validators
+        );
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
+        EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
+            hashedData: keccak256(messageData)
         });
 
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes32 messageHash = keccak256(abi.encode(message));
 
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),
@@ -598,7 +580,7 @@ contract ECDSAVerifierTest is Test {
         );
 
         vm.expectRevert(Errors.SessionIdMismatch.selector);
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+        router.deliverAndExecuteMessage(message, messageData, 0, proof);
     }
 
     /// @notice Tests the receive message with set message cost usd command.
@@ -619,20 +601,18 @@ contract ECDSAVerifierTest is Test {
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
         (, uint256 charlethSecret) = makeAddrAndKey("charleth");
 
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(bytes1(0x02), 0.5 ether);
+        bytes memory messageData = abi.encode(bytes1(0x02), 0.5 ether);
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
+        EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
+            hashedData: keccak256(messageData)
         });
 
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes32 messageHash = keccak256(abi.encode(message));
 
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),
@@ -642,7 +622,7 @@ contract ECDSAVerifierTest is Test {
 
         vm.expectEmit(true, true, true, true);
         emit MessageCostUsdSet(0.5 ether);
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+        router.deliverAndExecuteMessage(message, messageData, 0, proof);
 
         assertEq(
             verifier.messageCostUsd(),
@@ -673,24 +653,22 @@ contract ECDSAVerifierTest is Test {
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
         (, uint256 charlethSecret) = makeAddrAndKey("charleth");
 
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(
+        bytes memory messageData = abi.encode(
             bytes1(0x03),
             liquidityProvider,
             transferAmount
         );
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
+        EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
+            hashedData: keccak256(messageData)
         });
 
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes32 messageHash = keccak256(abi.encode(message));
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),
             signMessage(messageHash, alithSecret),
@@ -700,7 +678,7 @@ contract ECDSAVerifierTest is Test {
         vm.prank(address(verifier));
         vm.expectEmit(true, true, true, true);
         emit FeesTransferred(liquidityProvider, session, transferAmount);
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+        router.deliverAndExecuteMessage(message, messageData, 0, proof);
 
         assertEq(
             address(verifier).balance,
@@ -720,20 +698,18 @@ contract ECDSAVerifierTest is Test {
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
         (, uint256 charlethSecret) = makeAddrAndKey("charleth");
 
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(bytes1(0x04), BOB);
+        bytes memory messageData = abi.encode(bytes1(0x04), BOB);
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
+        EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
+            hashedData: keccak256(messageData)
         });
 
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes32 messageHash = keccak256(abi.encode(message));
 
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),
@@ -743,7 +719,7 @@ contract ECDSAVerifierTest is Test {
 
         vm.expectEmit(true, true, true, true);
         emit NoFeeAddressAdded(BOB);
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+        router.deliverAndExecuteMessage(message, messageData, 0, proof);
 
         assertEq(verifier.noFee(BOB), true, "No fee address not set correctly");
     }
@@ -759,20 +735,18 @@ contract ECDSAVerifierTest is Test {
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
         (, uint256 charlethSecret) = makeAddrAndKey("charleth");
 
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(bytes1(0x05), BOB);
+        bytes memory messageData = abi.encode(bytes1(0x05), BOB);
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
+        EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
+            hashedData: keccak256(messageData)
         });
 
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes32 messageHash = keccak256(abi.encode(message));
 
         bytes memory proof = bytes.concat(
             signMessage(messageHash, charlethSecret),
@@ -782,7 +756,7 @@ contract ECDSAVerifierTest is Test {
 
         vm.expectEmit(true, true, true, true);
         emit NoFeeAddressRemoved(BOB);
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+        router.deliverAndExecuteMessage(message, messageData, 0, proof);
 
         assertEq(verifier.noFee(BOB), false, "No fee address not removed");
     }

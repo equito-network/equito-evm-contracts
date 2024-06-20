@@ -26,7 +26,10 @@ contract EquitoAppTest is Test {
     function setUp() public {
         vm.startPrank(OWNER);
         verifier = new MockVerifier();
-        router = new MockRouter(1, address(verifier), address(verifier), EquitoMessageLibrary.addressToBytes64(equitoAddress));
+        router = new MockRouter(
+            1,
+            EquitoMessageLibrary.addressToBytes64(equitoAddress)
+        );
         app = new MockEquitoApp(address(router));
         vm.stopPrank();
     }
@@ -150,5 +153,28 @@ contract EquitoAppTest is Test {
         vm.prank(address(router));
         vm.expectRevert(Errors.InvalidMessageSender.selector);
         app.receiveMessage(message, hex"123456");
+    }
+
+    function testInvalidSenderFails() public {
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 1,
+            sourceChainSelector: 1,
+            sender: EquitoMessageLibrary.addressToBytes64(BOB),
+            destinationChainSelector: 2,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
+            hashedData: keccak256(hex"123456")
+        });
+
+        vm.prank(ALICE);
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InvalidSender.selector, ALICE)
+        );
+        app._receiveMessageFromPeer(message, hex"123456");
+
+        vm.prank(BOB);
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InvalidSender.selector, BOB)
+        );
+        app._receiveMessageFromNonPeer(message, hex"123456");
     }
 }

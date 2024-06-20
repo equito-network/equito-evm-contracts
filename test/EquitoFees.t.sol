@@ -28,7 +28,7 @@ contract EquitoFeesTest is Test {
         equitoFees = new MockEquitoFees();
         vm.stopPrank();
     }
-    
+
     /// @notice Test that the initial fee is set correctly.
     function testInitialFee() public {
         uint256 fee = equitoFees.getFee(ALICE);

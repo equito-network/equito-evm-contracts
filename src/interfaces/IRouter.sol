@@ -41,17 +41,17 @@ interface IRouter {
         bytes calldata data
     ) external payable returns (bytes32);
 
-    /// @notice Routes messages to the appropriate receiver contracts.
-    /// @param messages The list of messages to be delivered and executed.
-    /// @param messageData The data of the messages to be delivered and executed.
-    /// @param verifierIndex The index of the verifier used to verify the messages.
-    /// @param proof The proof provided by the verifier.
-    function deliverAndExecuteMessages(
-        EquitoMessage[] calldata messages,
-        bytes[] calldata messageData,
+    /// @notice Verify and execute a message with the appropriate receiver contract.
+    /// @param message The message to be executed.
+    /// @param messageData The data of the message to be executed.
+    /// @param verifierIndex The index of the verifier used to verify the message.
+    /// @param proof The proof to provide to the verifier.
+    function deliverAndExecuteMessage(
+        EquitoMessage calldata message,
+        bytes calldata messageData,
         uint256 verifierIndex,
         bytes calldata proof
-    ) external;
+    ) external payable;
 
     /// @notice Delivers messages to be stored for later execution.
     /// @param messages The list of messages to be delivered.
@@ -63,13 +63,13 @@ interface IRouter {
         bytes calldata proof
     ) external;
 
-    /// @notice Executes the stored messages.
-    /// @param messages The list of messages to be executed.
-    /// @param messageData The data of the messages to be executed.
-    function executeMessages(
-        EquitoMessage[] calldata messages,
-        bytes[] calldata messageData
-    ) external;
+    /// @notice Executes a stored message.
+    /// @param message The message to be executed.
+    /// @param messageData The data of the message to be executed.
+    function executeMessage(
+        EquitoMessage calldata message,
+        bytes calldata messageData
+    ) external payable;
 
     /// @notice Returns the chain selector of the current chain.
     function chainSelector() external view returns (uint256);

@@ -75,6 +75,8 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     }
 
     /// @notice Sets the Router contract used to send cross-chain messages.
+    /// @dev This function can only be called once to set the Router contract. 
+    ///      It's needed to avoid cyclical dependencies between the Router and Verifier contracts at deploy.
     /// @param _router The address of the Router contract.
     function setRouter(address _router) external {
         if (address(router) != address(0)) {
@@ -90,8 +92,8 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     function verifyMessage(
         EquitoMessage calldata message,
         bytes calldata proof
-    ) external returns (bool) {
-        return this.verifySignatures(keccak256(abi.encode(messages[0])), proof);
+    ) external view override returns (bool) {
+        return _verifySignatures(keccak256(abi.encode(message)), proof);
     }
 
     /// @notice Verifies that a set of `EquitoMessage` instances have been signed by a sufficient number of Validators.
@@ -105,26 +107,17 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         if (messages.length == 0) return false;
 
         if (messages.length == 1) {
-            return this.verifySignatures(keccak256(abi.encode(messages[0])), proof);
+            return _verifySignatures(keccak256(abi.encode(messages[0])), proof);
         } else {
-            return this.verifySignatures(keccak256(abi.encode(messages)), proof);
+            return _verifySignatures(keccak256(abi.encode(messages)), proof);
         }
-    }
-
-    /// @notice Updates the list of Validators.
-    /// @param _validators The new list of validator addresses.
-    function updateValidators(address[] calldata _validators) external {
-        validators = _validators;
-        session += 1;
-
-        emit ValidatorSetUpdated();
     }
 
     /// @notice Verifies that a hashed message has been signed by a sufficient number of Validators.
     /// @param hash The hash of the message to verify.
     /// @param proof The concatenated ECDSA signatures from the validators.
     /// @return True if the signatures are verified successfully, otherwise false.
-    function verifySignatures(
+    function _verifySignatures(
         bytes32 hash,
         bytes memory proof
     ) internal view returns (bool) {
@@ -213,7 +206,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     function receiveMessage(
         EquitoMessage calldata message,
         bytes calldata messageData
-    ) external override onlySovereign(message) {
+    ) external payable override onlySovereign(message) {
         if (msg.sender != address(router)) {
             revert Errors.InvalidRouter(msg.sender);
         }
@@ -228,7 +221,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
             if (currentSession != session) revert Errors.SessionIdMismatch();
 
-            this.updateValidators(newValidators);
+            _updateValidators(newValidators);
             
             (bytes32 lower, bytes32 upper) = router.equitoAddress();
             
@@ -287,6 +280,15 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         if (!success) revert Errors.TransferFailed();
 
         emit FeesTransferred(liquidityProvider, session, transferAmount);
+    }
+
+    /// @notice Updates the list of Validators.
+    /// @param _validators The new list of validator addresses.
+    function _updateValidators(address[] memory _validators) internal {
+        validators = _validators;
+        session += 1;
+
+        emit ValidatorSetUpdated();
     }
 
     /// @notice Adds an address to the noFee list.
