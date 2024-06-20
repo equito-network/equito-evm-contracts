@@ -238,10 +238,11 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         } else if (operation == 0x03) {
             // Transfer fees to the liquidity provider
             address liquidityProvider;
+            uint256 sessionId;
             uint256 amount;
-            (, liquidityProvider, amount) = abi.decode(messageData, (bytes32, address, uint256));
+            (, liquidityProvider, sessionId, amount) = abi.decode(messageData, (bytes32, address, uint256, uint256));
 
-            _transferFees(liquidityProvider, amount);
+            _transferFees(liquidityProvider, sessionId, amount);
         } else if (operation == 0x04) {
             // Add address to the noFee list
             address noFeeAddress;
@@ -262,20 +263,24 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     /// @notice Transfers fees to the liquidity provider.
     /// @param liquidityProvider The address of the liquidity provider.
     /// @param amount The amount of fees to transfer.
-    function _transferFees(address liquidityProvider, uint256 amount) internal {
+    function _transferFees(address liquidityProvider, uint256 sessionId, uint256 amount) private {
         if (liquidityProvider == address(0)) {
             revert Errors.InvalidLiquidityProvider();
         }
 
-        uint256 sessionFees = fees[session];
+        if (sessionId > session) {
+            revert Errors.InvalidSessionId();
+        }
+
+        uint256 sessionFees = fees[sessionId];
         uint256 transferAmount = (amount > sessionFees) ? sessionFees : amount;
 
-        fees[session] -= transferAmount;
+        fees[sessionId] -= transferAmount;
 
         (bool success, ) = payable(liquidityProvider).call{value: transferAmount}("");
         if (!success) revert Errors.TransferFailed();
 
-        emit FeesTransferred(liquidityProvider, session, transferAmount);
+        emit FeesTransferred(liquidityProvider, sessionId, transferAmount);
     }
 
     /// @notice Adds an address to the noFee list.
