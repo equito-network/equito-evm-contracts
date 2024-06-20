@@ -100,15 +100,6 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         }
     }
 
-    /// @notice Updates the list of Validators.
-    /// @param _validators The new list of validator addresses.
-    function updateValidators(address[] calldata _validators) external {
-        validators = _validators;
-        session += 1;
-
-        emit ValidatorSetUpdated();
-    }
-
     /// @notice Verifies that a hashed message has been signed by a sufficient number of Validators.
     /// @param hash The hash of the message to verify.
     /// @param proof The concatenated ECDSA signatures from the validators.
@@ -217,7 +208,7 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
             if (currentSession != session) revert Errors.SessionIdMismatch();
 
-            this.updateValidators(newValidators);
+            _updateValidators(newValidators);
             
             (bytes32 lower, bytes32 upper) = router.equitoAddress();
             
@@ -260,6 +251,15 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         }
     }
 
+    /// @notice Updates the list of Validators.
+    /// @param _validators The new list of validator addresses.
+    function _updateValidators(address[] memory _validators) private {
+        validators = _validators;
+        session += 1;
+
+        emit ValidatorSetUpdated();
+    }
+
     /// @notice Transfers fees to the liquidity provider.
     /// @param liquidityProvider The address of the liquidity provider.
     /// @param amount The amount of fees to transfer.
@@ -289,22 +289,33 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
 
     /// @notice Adds an address to the noFee list.
     /// @param noFeeAddress The address to be added to the noFee list.
-    function _addNoFeeAddress(address noFeeAddress) internal {
+    function _addNoFeeAddress(address noFeeAddress) private {
         noFee[noFeeAddress] = true;
         emit NoFeeAddressAdded(noFeeAddress);
     }
 
     /// @notice Removes an address from the noFee list.
     /// @param noFeeAddress The address to be removed from the noFee list.
-    function _removeNoFeeAddress(address noFeeAddress) internal {
+    function _removeNoFeeAddress(address noFeeAddress) private {
         noFee[noFeeAddress] = false;
         emit NoFeeAddressRemoved(noFeeAddress);
+    }
+
+    /// @notice Sets the cost of sending a message in USD.
+    /// @param _messageCostUsd The new cost of sending a message in USD.
+    function _setMessageCostUsd(uint256 _messageCostUsd) private {
+        if (_messageCostUsd == 0) {
+            revert Errors.CostMustBeGreaterThanZero();
+        }
+
+        messageCostUsd = _messageCostUsd;
+        emit MessageCostUsdSet(_messageCostUsd);
     }
 
     /// @notice Calculates the fee amount required to send a message based on the current messageCostUsd and tokenPriceUsd from the Oracle.
     /// @param sender The address of the Message Sender, usually an Equito App.
     /// @return The fee amount in wei.
-    function _getFee(address sender) internal view returns (uint256) {
+    function _getFee(address sender) private view returns (uint256) {
         if (noFee[sender]) {
             return 0;
         }
@@ -315,16 +326,5 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         }
 
         return (messageCostUsd * 1e18) / tokenPriceUsd;
-    }
-
-    /// @notice Sets the cost of sending a message in USD.
-    /// @param _messageCostUsd The new cost of sending a message in USD.
-    function _setMessageCostUsd(uint256 _messageCostUsd) internal {
-        if (_messageCostUsd == 0) {
-            revert Errors.CostMustBeGreaterThanZero();
-        }
-
-        messageCostUsd = _messageCostUsd;
-        emit MessageCostUsdSet(_messageCostUsd);
     }
 }

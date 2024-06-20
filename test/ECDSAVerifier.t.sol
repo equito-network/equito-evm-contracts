@@ -56,8 +56,38 @@ contract ECDSAVerifierTest is Test {
             EquitoMessageLibrary.addressToBytes64(equitoAddress)
         );
         verifier.setRouter(address(router));
-        verifier.setMessageCostUsd(messageCostUsd);
+        
         vm.stopPrank();
+        
+        // Set cost message usd
+        (, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = abi.encode(bytes1(0x02), messageCostUsd);
+
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
+            hashedData: keccak256(messageData[0])
+        });
+
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit MessageCostUsdSet(messageCostUsd);
+        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
     }
 
     /// @dev Tests setting a router
@@ -228,25 +258,6 @@ contract ECDSAVerifierTest is Test {
         console.log(verifier.verifyMessages(messages, proof));
     }
 
-    /// @notice Tests the updating of validators.
-    function testUpdateValidators() public {
-        (address charleth, ) = makeAddrAndKey("charleth");
-
-        uint256 session = verifier.session();
-
-        address[] memory validators = new address[](1);
-        validators[0] = charleth;
-
-        verifier.updateValidators(validators);
-
-        assert(verifier.validators(0) == charleth);
-        assertEq(verifier.session(), session + 1);
-
-        vm.expectRevert();
-        console.log(verifier.validators(1));
-
-        console.log("Validators updated successfully!");
-    }
 
     /// @notice Tests the verification of empty messages, which should fail.
     function testVerifyEmptyMessagesFails() public view {
@@ -286,26 +297,6 @@ contract ECDSAVerifierTest is Test {
         assertEq(fee, expectedFee, "Incorrect fee calculated");
     }
 
-    /// @notice Tests getting the fee for no fee address.
-    function testGetFeeForNoFeeAddress() external {
-        uint256 expectedFee = (messageCostUsd * 1e18) / oracleTokenPriceUsd;
-        uint256 fee = verifier.getFee(ALICE);
-        assertEq(fee, expectedFee, "Incorrect fee calculated");
-
-        vm.prank(OWNER);
-        vm.expectEmit(true, true, true, true);
-        emit NoFeeAddressAdded(ALICE);
-        verifier.addNoFeeAddress(ALICE);
-
-        assertEq(verifier.getFee(ALICE), 0, "Incorrect fee calculated");
-
-        assertEq(
-            verifier.getFee(address(verifier)),
-            0,
-            "Incorrect fee calculated"
-        );
-    }
-
     /// @notice Test paying the fee with sufficient amount.
     function testPayFeeSuccess() public {
         vm.deal(ALICE, 1 ether);
@@ -340,118 +331,16 @@ contract ECDSAVerifierTest is Test {
 
         vm.expectRevert(Errors.InsufficientFee.selector);
         verifier.payFee{value: insufficientFee}(CHARLIE);
-    }
+    } 
 
-    /// @notice Test adding an address to the noFee list
-    function testAddNoFeeAddress() public {
-        vm.prank(OWNER);
-
-        vm.expectEmit(true, true, true, true);
-        emit NoFeeAddressAdded(ALICE);
-        verifier.addNoFeeAddress(ALICE);
-
-        assertEq(
-            verifier.noFee(ALICE),
-            true,
-            "No fee address not set correctly"
-        );
-    }
-
-    /// @notice Test removing an address from the noFee list
-    function testRemoveNoFeeAddress() public {
-        vm.prank(OWNER);
-
-        vm.expectEmit(true, true, true, true);
-        emit NoFeeAddressRemoved(ALICE);
-        verifier.removeNoFeeAddress(ALICE);
-
-        assertEq(verifier.noFee(ALICE), false, "No fee address not removed");
-    }
-
-    /// @notice Tests setting the cost of a message in USD.
-    function testSetMessageCostUsd() public {
-        vm.prank(OWNER);
-
-        vm.expectEmit(true, true, true, true);
-        emit MessageCostUsdSet(100);
-        verifier.setMessageCostUsd(100);
-
-        assertEq(
-            verifier.messageCostUsd(),
-            100,
-            "Message cost USD not set correctly"
-        );
-    }
-
-    /// @notice Tests setting the cost of a message in USD with a value of zero.
-    function testSetMessageCostUsdCostMustBeGreaterThanZero() public {
-        vm.prank(OWNER);
-
-        vm.expectRevert(Errors.CostMustBeGreaterThanZero.selector);
-        verifier.setMessageCostUsd(0);
-    }
-
-    /// @notice Tests the transfer fees.
-    function testTransferFees() public {
-        uint256 initialAmount = 1 ether;
-
-        vm.deal(ALICE, initialAmount);
-        vm.startPrank(ALICE);
-        verifier.payFee{value: initialAmount}(ALICE);
-        vm.stopPrank();
-
-        assertEq(
-            address(verifier).balance,
-            initialAmount,
-            "Verifier balance mismatch after fee payment"
-        );
-
-        uint256 session = verifier.session();
-        uint256 transferAmount = 0.5 ether;
-        address liquidityProvider = BOB;
-
-        assertEq(
-            liquidityProvider.balance,
-            0,
-            "Initial liquidity provider balance should be 0"
-        );
-
-        vm.expectEmit(true, true, true, true);
-        emit FeesTransferred(liquidityProvider, session, transferAmount);
-
-        vm.prank(address(this));
-        verifier.transferFees(liquidityProvider, session, transferAmount);
-
-        assertEq(
-            address(verifier).balance,
-            initialAmount - transferAmount,
-            "Verifier balance mismatch after transfer"
-        );
-        assertEq(
-            liquidityProvider.balance,
-            transferAmount,
-            "Liquidity provider balance mismatch after transfer"
-        );
-    }
-
-    /// @notice Tests the transfer fees with previous session ID.
-    function testTransferFeesWithPreviousSessionId() public {
-        // Pay fee for session 0
-        uint256 initialAmount = 0.1 ether;
-        verifier.payFee{value: initialAmount}(ALICE);
-
-        // Updated session to 1
+    /// @notice Tests the receive message with set message cost usd command.
+    function testReceiveMessageSetMessageCostUsd() external {
         (, uint256 alithSecret) = makeAddrAndKey("alith");
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
-        (address charleth, uint256 charlethSecret) = makeAddrAndKey("charleth");
-
-        uint256 session = verifier.session();
-
-        address[] memory validators = new address[](1);
-        validators[0] = charleth;
+        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
 
         bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(bytes1(0x01), session, validators);
+        messageData[0] = abi.encode(bytes1(0x02), 0.5 ether);
 
         EquitoMessage[] memory messages = new EquitoMessage[](1);
         messages[0] = EquitoMessage({
@@ -471,25 +360,105 @@ contract ECDSAVerifierTest is Test {
             signMessage(messageHash, baltatharSecret)
         );
 
+        vm.expectEmit(true, true, true, true);
+        emit MessageCostUsdSet(0.5 ether);
         router.deliverAndExecuteMessages(messages, messageData, 0, proof);
 
-        // Transfer fees for session 0
-        uint256 prevSession = verifier.session() - 1;
-        uint256 transferAmount = 0.1 ether;
-        address liquidityProvider = BOB;
-
         assertEq(
-            liquidityProvider.balance,
-            0,
-            "Initial liquidity provider balance should be 0"
+            verifier.messageCostUsd(),
+            0.5 ether,
+            "Message cost USD not set correctly"
+        );
+    }
+
+    /// @notice Tests the receive message with set message cost usd command when cost muct be greater than zero.
+    function testReceiveMessageSetMessageCostUsdCostMustBeGreaterThanZero() external {
+        (, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = abi.encode(bytes1(0x02), 0);
+
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
+            hashedData: keccak256(messageData[0])
+        });
+
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
         );
 
+        vm.expectRevert(Errors.CostMustBeGreaterThanZero.selector);
+        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+    }
+
+    /// @notice Tests the receive message with transfer fees command.
+    function testReceiveMessageTransferFees() external {
+        uint256 initialAmount = 1 ether;
+        uint256 transferAmount = 0.5 ether;
+        address liquidityProvider = BOB;
+        uint256 session = verifier.session();
+
+        vm.deal(ALICE, initialAmount);
+        vm.startPrank(ALICE);
+        verifier.payFee{value: initialAmount}(ALICE);
+        vm.stopPrank();
+
+        assertEq(
+            address(verifier).balance,
+            initialAmount,
+            "Verifier balance mismatch after fee payment"
+        );
+
+        (, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = abi.encode(
+            bytes1(0x03),
+            liquidityProvider,
+            session,
+            transferAmount
+        );
+
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
+            hashedData: keccak256(messageData[0])
+        });
+
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
+        );
+
+        vm.prank(address(verifier));
         vm.expectEmit(true, true, true, true);
-        emit FeesTransferred(liquidityProvider, prevSession, transferAmount);
+        emit FeesTransferred(liquidityProvider, session, transferAmount);
+        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
 
-        vm.prank(address(this));
-        verifier.transferFees(liquidityProvider, prevSession, transferAmount);
-
+        assertEq(
+            address(verifier).balance,
+            initialAmount - transferAmount,
+            "Verifier balance mismatch after transfer"
+        );
         assertEq(
             liquidityProvider.balance,
             transferAmount,
@@ -497,32 +466,13 @@ contract ECDSAVerifierTest is Test {
         );
     }
 
-    /// @notice Tests the transfer fees with an invalid liquidity provider.
-    function testTransferFeesInvalidLiquidityProvider() public {
+    /// @notice Tests the receive message with transfer fees when an invalid liquidity provider.
+    function testReceiveMessageTransferFeesInvalidLiquidityProvider() external {
         uint256 initialAmount = 1 ether;
-
-        vm.deal(ALICE, initialAmount);
-        vm.startPrank(ALICE);
-        verifier.payFee{value: initialAmount}(ALICE);
-        vm.stopPrank();
-
-        assertEq(
-            address(verifier).balance,
-            initialAmount,
-            "Verifier balance mismatch after fee payment"
-        );
-
         uint256 transferAmount = 0.5 ether;
+        address liquidityProvider = address(0);
         uint256 session = verifier.session();
 
-        vm.expectRevert(Errors.InvalidLiquidityProvider.selector);
-        verifier.transferFees(address(0), session, transferAmount);
-    }
-
-    /// @notice Tests the transfer fees with an invalid session ID.
-    function testTransferFeesInvalidSessionId() public {
-        uint256 initialAmount = 1 ether;
-
         vm.deal(ALICE, initialAmount);
         vm.startPrank(ALICE);
         verifier.payFee{value: initialAmount}(ALICE);
@@ -534,51 +484,132 @@ contract ECDSAVerifierTest is Test {
             "Verifier balance mismatch after fee payment"
         );
 
-        uint256 transferAmount = 0.5 ether;
-        uint256 invalidSessionId = verifier.session() + 1;
-        address liquidityProvider = BOB;
+        (, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
 
-        assertEq(
-            liquidityProvider.balance,
-            0,
-            "Initial liquidity provider balance should be 0"
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = abi.encode(
+            bytes1(0x03),
+            liquidityProvider,
+            session,
+            transferAmount
         );
 
-        vm.expectRevert(Errors.InvalidSessionId.selector);
-        verifier.transferFees(liquidityProvider, invalidSessionId, transferAmount);
-    }
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
+            hashedData: keccak256(messageData[0])
+        });
 
-    /// @notice Tests the transfer fees when the amount exceeds available fees.
-    function testTransferFeesAmountExceedsFees() public {
-        uint256 initialAmount = 1 ether;
-
-        // Set up initial state
-        vm.deal(ALICE, initialAmount);
-        vm.startPrank(ALICE);
-        verifier.payFee{value: initialAmount}(ALICE);
-        vm.stopPrank();
-
-        assertEq(
-            address(verifier).balance,
-            initialAmount,
-            "Verifier balance mismatch after fee payment"
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
         );
-
-        uint256 session = verifier.session();
-        uint256 transferAmount = 1.5 ether;
-        address liquidityProvider = BOB;
-
-        assertEq(
-            liquidityProvider.balance,
-            0,
-            "Initial liquidity provider balance should be 0"
-        );
-
-        vm.expectEmit(true, true, true, true);
-        emit FeesTransferred(liquidityProvider, session, initialAmount);
 
         vm.prank(address(verifier));
-        verifier.transferFees(liquidityProvider, session, transferAmount);
+        vm.expectRevert(Errors.InvalidLiquidityProvider.selector);
+        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+    }
+
+    /// @notice Tests the receive message with transfer fees when no fees available.
+    function testReceiveMessageTransferFeesNoFeesAvailable() external {
+        uint256 transferAmount = 0.5 ether;
+        address liquidityProvider = BOB;
+        uint256 session = verifier.session();
+
+
+        (, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = abi.encode(
+            bytes1(0x03),
+            liquidityProvider,
+            session,
+            transferAmount
+        );
+
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
+            hashedData: keccak256(messageData[0])
+        });
+
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
+        );
+
+        vm.prank(address(verifier));
+        vm.expectRevert(Errors.NoFeesAvailable.selector);
+        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+    }
+
+    /// @notice Tests the receive message with transfer fees when the amount exceeds available fees.
+    function testReceiveMessageTransferFeesAmountExceedsFees() external {
+        uint256 initialAmount = 1 ether;
+        uint256 transferAmount = 1.5 ether;
+        address liquidityProvider = BOB;
+        uint256 session = verifier.session();
+
+        vm.deal(ALICE, initialAmount);
+        vm.startPrank(ALICE);
+        verifier.payFee{value: initialAmount}(ALICE);
+        vm.stopPrank();
+
+        assertEq(
+            address(verifier).balance,
+            initialAmount,
+            "Verifier balance mismatch after fee payment"
+        );
+
+        (, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = abi.encode(
+            bytes1(0x03),
+            liquidityProvider,
+            session,
+            transferAmount
+        );
+
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
+            hashedData: keccak256(messageData[0])
+        });
+
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
+        );
+
+        vm.prank(address(verifier));
+        vm.expectEmit(true, true, true, true);
+        emit FeesTransferred(liquidityProvider, session, initialAmount);
+        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
 
         assertEq(
             address(verifier).balance,
@@ -592,9 +623,15 @@ contract ECDSAVerifierTest is Test {
         );
     }
 
-    /// @notice Tests the transfer fees when the transfer fails.
-    function testTransferFeesTransferFailed() public {
+    
+    /// @notice Tests the receive message with transfer fees when the transfer fails.
+    function testReceiveMessageTransferFeesTransferFailed() external {
         uint256 initialAmount = 1 ether;
+        uint256 transferAmount = 0.5 ether;
+        address payable invalidLiquidityProvider = payable(
+            address(new MockInvalidReceiver())
+        );
+        uint256 session = verifier.session();
 
         vm.deal(ALICE, initialAmount);
         vm.startPrank(ALICE);
@@ -607,14 +644,38 @@ contract ECDSAVerifierTest is Test {
             "Verifier balance mismatch after fee payment"
         );
 
-        uint256 transferAmount = 0.5 ether;
-        uint256 session = verifier.session();
-        address payable invalidLiquidityProvider = payable(
-            address(new MockInvalidReceiver())
+        (, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        bytes[] memory messageData = new bytes[](1);
+        messageData[0] = abi.encode(
+            bytes1(0x03),
+            invalidLiquidityProvider,
+            0,
+            transferAmount
         );
 
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
+            hashedData: keccak256(messageData[0])
+        });
+
+        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
+        );
+
+        vm.prank(address(verifier));
         vm.expectRevert(Errors.TransferFailed.selector);
-        verifier.transferFees(invalidLiquidityProvider, session, transferAmount);
+        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
     }
 
     /// @notice Tests the receive message with update validators command.
@@ -692,120 +753,6 @@ contract ECDSAVerifierTest is Test {
         router.deliverAndExecuteMessages(messages, messageData, 0, proof);
     }
 
-    /// @notice Tests the receive message with set message cost usd command.
-    function testReceiveMessageSetMessageCostUsd() external {
-        vm.prank(OWNER);
-
-        vm.expectEmit(true, true, true, true);
-        emit MessageCostUsdSet(100);
-        verifier.setMessageCostUsd(100);
-
-        assertEq(
-            verifier.messageCostUsd(),
-            100,
-            "Message cost USD not set correctly"
-        );
-
-        (, uint256 alithSecret) = makeAddrAndKey("alith");
-        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
-        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
-
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(bytes1(0x02), 0.5 ether);
-
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
-            blockNumber: 0,
-            sourceChainSelector: 0,
-            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 1,
-            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
-        });
-
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
-
-        bytes memory proof = bytes.concat(
-            signMessage(messageHash, charlethSecret),
-            signMessage(messageHash, alithSecret),
-            signMessage(messageHash, baltatharSecret)
-        );
-
-        vm.expectEmit(true, true, true, true);
-        emit MessageCostUsdSet(0.5 ether);
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
-
-        assertEq(
-            verifier.messageCostUsd(),
-            0.5 ether,
-            "Message cost USD not set correctly"
-        );
-    }
-
-    /// @notice Tests the receive message with transfer fees command.
-    function testReceiveMessageTransferFees() external {
-        uint256 initialAmount = 1 ether;
-        uint256 transferAmount = 0.5 ether;
-        address liquidityProvider = BOB;
-        uint256 session = verifier.session();
-
-        vm.deal(ALICE, initialAmount);
-        vm.startPrank(ALICE);
-        verifier.payFee{value: initialAmount}(ALICE);
-        vm.stopPrank();
-
-        assertEq(
-            address(verifier).balance,
-            initialAmount,
-            "Verifier balance mismatch after fee payment"
-        );
-
-        (, uint256 alithSecret) = makeAddrAndKey("alith");
-        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
-        (, uint256 charlethSecret) = makeAddrAndKey("charleth");
-
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(
-            bytes1(0x03),
-            liquidityProvider,
-            session,
-            transferAmount
-        );
-
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
-            blockNumber: 0,
-            sourceChainSelector: 0,
-            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
-            destinationChainSelector: 1,
-            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
-        });
-
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
-        bytes memory proof = bytes.concat(
-            signMessage(messageHash, charlethSecret),
-            signMessage(messageHash, alithSecret),
-            signMessage(messageHash, baltatharSecret)
-        );
-
-        vm.prank(address(verifier));
-        vm.expectEmit(true, true, true, true);
-        emit FeesTransferred(liquidityProvider, session, transferAmount);
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
-
-        assertEq(
-            address(verifier).balance,
-            initialAmount - transferAmount,
-            "Verifier balance mismatch after transfer"
-        );
-        assertEq(
-            liquidityProvider.balance,
-            transferAmount,
-            "Liquidity provider balance mismatch after transfer"
-        );
-    }
-
     /// @notice Test receiving a message to add an address to the noFee list
     function testReceiveMessageAddNoFeeAddress() external {
         (, uint256 alithSecret) = makeAddrAndKey("alith");
@@ -842,39 +789,61 @@ contract ECDSAVerifierTest is Test {
 
     /// @notice Test receiving a message to remove an address from the noFee list
     function testReceiveMessageRemoveNoFeeAddress() external {
-        vm.expectEmit(true, true, true, true);
-        emit NoFeeAddressAdded(BOB);
-        verifier.addNoFeeAddress(BOB);
-        assertEq(verifier.noFee(BOB), true, "No fee address not set correctly");
-
         (, uint256 alithSecret) = makeAddrAndKey("alith");
         (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
         (, uint256 charlethSecret) = makeAddrAndKey("charleth");
 
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = abi.encode(bytes1(0x05), BOB);
+        // Add no fee address
+        bytes[] memory messageData1 = new bytes[](1);
+        messageData1[0] = abi.encode(bytes1(0x04), BOB);
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = EquitoMessage({
+        EquitoMessage[] memory messages1 = new EquitoMessage[](1);
+        messages1[0] = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
-            hashedData: keccak256(messageData[0])
+            hashedData: keccak256(messageData1[0])
         });
 
-        bytes32 messageHash = keccak256(abi.encode(messages[0]));
+        bytes32 messageHash1 = keccak256(abi.encode(messages1[0]));
 
-        bytes memory proof = bytes.concat(
-            signMessage(messageHash, charlethSecret),
-            signMessage(messageHash, alithSecret),
-            signMessage(messageHash, baltatharSecret)
+        bytes memory proof1 = bytes.concat(
+            signMessage(messageHash1, charlethSecret),
+            signMessage(messageHash1, alithSecret),
+            signMessage(messageHash1, baltatharSecret)
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit NoFeeAddressAdded(BOB);
+        router.deliverAndExecuteMessages(messages1, messageData1, 0, proof1);
+
+        // Remove no fee address
+        bytes[] memory messageData2 = new bytes[](1);
+        messageData2[0] = abi.encode(bytes1(0x05), BOB);
+
+        EquitoMessage[] memory messages2 = new EquitoMessage[](1);
+        messages2[0] = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
+            hashedData: keccak256(messageData2[0])
+        });
+
+        bytes32 messageHash2 = keccak256(abi.encode(messages2[0]));
+
+        bytes memory proof2 = bytes.concat(
+            signMessage(messageHash2, charlethSecret),
+            signMessage(messageHash2, alithSecret),
+            signMessage(messageHash2, baltatharSecret)
         );
 
         vm.expectEmit(true, true, true, true);
         emit NoFeeAddressRemoved(BOB);
-        router.deliverAndExecuteMessages(messages, messageData, 0, proof);
+        router.deliverAndExecuteMessages(messages2, messageData2, 0, proof2);
 
         assertEq(verifier.noFee(BOB), false, "No fee address not removed");
     }
