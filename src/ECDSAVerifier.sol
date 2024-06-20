@@ -273,6 +273,10 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
         }
 
         uint256 sessionFees = fees[sessionId];
+        if (sessionFees == 0) {
+            revert Errors.NoFeesAvailable();
+        }
+
         uint256 transferAmount = (amount > sessionFees) ? sessionFees : amount;
 
         fees[sessionId] -= transferAmount;

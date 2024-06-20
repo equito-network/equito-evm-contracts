@@ -61,6 +61,9 @@ library Errors {
     /// @notice Thrown when attempting to set the router, but the router is already set.
     error RouterAlreadySet();
 
-    /// @notice Thrown when the provided session ID does not match the current session.
+    /// @notice Thrown when the provided session ID is invalid.
     error InvalidSessionId();
+
+    /// @notice Thrown when there are no fees available to transfer.
+    error NoFeesAvailable();
 }
