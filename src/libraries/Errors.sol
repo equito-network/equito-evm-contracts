@@ -59,4 +59,7 @@ library Errors {
 
     /// @notice Thrown when an invalid sender is calling a function.
     error InvalidSender(address sender);
+
+    /// @notice Thrown when the provided session ID does not match the current session.
+    error InvalidSessionId();
 }
