@@ -155,6 +155,8 @@ contract EquitoAppTest is Test {
         app.receiveMessage(message, hex"123456");
     }
 
+    /// @dev Tests the `_receiveMessage` functions fail when the sender address is not the actual contract.
+    ///      This ensures the overrides keep the `onlySelf` modifier.
     function testInvalidSenderFails() public {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,

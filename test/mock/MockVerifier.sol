@@ -20,4 +20,8 @@ contract MockVerifier is IEquitoVerifier {
     ) external override returns (bool) {
         return proof.length > 0;
     }
+
+    function setRouter(address _router) external override {
+        require(_router != address(0), "Router address cannot be zero");
+    }
 }
