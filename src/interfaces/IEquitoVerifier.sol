@@ -14,7 +14,7 @@ interface IEquitoVerifier {
     function verifyMessage(
         EquitoMessage calldata message,
         bytes calldata proof
-    ) external returns (bool); 
+    ) external returns (bool);
 
     /// @notice Verifies a set of Equito messages using the provided proof.
     /// @param messages The array of Equito messages to verify.
@@ -23,5 +23,11 @@ interface IEquitoVerifier {
     function verifyMessages(
         EquitoMessage[] calldata messages,
         bytes calldata proof
-    ) external returns (bool); 
+    ) external returns (bool);
+
+    /// @notice Sets the address of the router contract.
+    /// @dev This function is called by the Router when a new Verifier is added.
+    ///      It should revert if the Router address is already set.
+    /// @param router The address of the router contract.
+    function setRouter(address router) external;
 }

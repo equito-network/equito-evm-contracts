@@ -37,7 +37,7 @@ contract Router is IRouter, IEquitoReceiver {
 
     /// @notice Initializes the Router contract with a chain selector, an initial verifier and the address of the EquitoFees contract..
     /// @param _chainSelector The chain selector of the chain where the Router contract is deployed.
-    /// @notice Initializes the contract with the address of the EquitoFees contract.
+    /// @param _equitoFees The address of the EquitoFees contract.
     /// @param _initialVerifier The address of the initial verifier contract.
     /// @param _equitoAddress The address of the Equito Protocol.
     constructor(
@@ -49,7 +49,10 @@ contract Router is IRouter, IEquitoReceiver {
         if (_initialVerifier == address(0)) {
             revert Errors.InitialVerifierZeroAddress();
         }
+
         chainSelector = _chainSelector;
+
+        IEquitoVerifier(_initialVerifier).setRouter(address(this));
         verifiers.push(IEquitoVerifier(_initialVerifier));
 
         equitoFees = IEquitoFees(_equitoFees);

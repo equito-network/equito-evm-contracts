@@ -75,10 +75,10 @@ contract ECDSAVerifier is IEquitoVerifier, IEquitoReceiver, IEquitoFees {
     }
 
     /// @notice Sets the Router contract used to send cross-chain messages.
-    /// @dev This function can only be called once to set the Router contract. 
+    /// @dev This function can only be called once to set the Router contract.
     ///      It's needed to avoid cyclical dependencies between the Router and Verifier contracts at deploy.
     /// @param _router The address of the Router contract.
-    function setRouter(address _router) external {
+    function setRouter(address _router) external override {
         if (address(router) != address(0)) {
             revert Errors.RouterAlreadySet();
         }
