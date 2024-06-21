@@ -55,7 +55,6 @@ contract ECDSAVerifierTest is Test {
             address(verifier),
             EquitoMessageLibrary.addressToBytes64(equitoAddress)
         );
-        verifier.setRouter(address(router));
         verifier.setMessageCostUsd(messageCostUsd);
         vm.stopPrank();
     }

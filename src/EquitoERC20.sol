@@ -49,7 +49,7 @@ contract EquitoERC20 is EquitoApp, ERC20 {
     function _receiveMessageFromPeer(
         EquitoMessage calldata message,
         bytes calldata messageData
-    ) internal override {
+    ) external payable override {
         (bytes64 memory receiver, uint256 amount) = abi.decode(
             messageData,
             (bytes64, uint256)

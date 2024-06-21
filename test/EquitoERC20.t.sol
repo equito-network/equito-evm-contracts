@@ -6,13 +6,15 @@ import {Test, console} from "forge-std/Test.sol";
 import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {EquitoERC20} from "../src/EquitoERC20.sol";
 import {MockVerifier} from "./mock/MockVerifier.sol";
-import {MockRouter} from "./mock/MockRouter.sol";
+import {MockEquitoFees} from "./mock/MockEquitoFees.sol";
+import {Router} from "../src/Router.sol";
 import {Errors} from "../src/libraries/Errors.sol";
 
 contract EquitoERC20Test is Test {
     EquitoERC20 token;
     MockVerifier verifier;
-    MockRouter router;
+    MockEquitoFees fees;
+    Router router;
     address constant OWNER = address(0x03132);
     address constant ALICE = address(0xA11CE);
     address constant BOB = address(0xB0B);
@@ -24,7 +26,13 @@ contract EquitoERC20Test is Test {
     function setUp() public {
         vm.startPrank(OWNER);
         verifier = new MockVerifier();
-        router = new MockRouter(1, address(verifier), address(verifier), EquitoMessageLibrary.addressToBytes64(equitoAddress));
+        fees = new MockEquitoFees();
+        router = new Router(
+            1,
+            address(verifier),
+            address(fees),
+            EquitoMessageLibrary.addressToBytes64(equitoAddress)
+        );
         token = new EquitoERC20(address(router), "Equito Token", "EQI", 1000);
 
         // Mint some tokens for testing
@@ -45,7 +53,11 @@ contract EquitoERC20Test is Test {
 
         vm.prank(ALICE);
         vm.deal(ALICE, 0.1 ether);
-        token.crossChainTransfer{value: 0.1 ether}(receiver, destinationChainSelector, amount);
+        token.crossChainTransfer{value: 0.1 ether}(
+            receiver,
+            destinationChainSelector,
+            amount
+        );
 
         assertEq(token.balanceOf(ALICE), 90);
     }
@@ -67,10 +79,15 @@ contract EquitoERC20Test is Test {
             sender: EquitoMessageLibrary.addressToBytes64(address(token)),
             destinationChainSelector: sourceChainSelector,
             receiver: EquitoMessageLibrary.addressToBytes64(address(token)),
-            hashedData: keccak256(abi.encode(EquitoMessageLibrary.addressToBytes64(BOB), amount))
+            hashedData: keccak256(
+                abi.encode(EquitoMessageLibrary.addressToBytes64(BOB), amount)
+            )
         });
 
-        bytes memory messageData = abi.encode(EquitoMessageLibrary.addressToBytes64(BOB), amount);
+        bytes memory messageData = abi.encode(
+            EquitoMessageLibrary.addressToBytes64(BOB),
+            amount
+        );
 
         vm.prank(address(router));
         token.receiveMessage(message, messageData);
