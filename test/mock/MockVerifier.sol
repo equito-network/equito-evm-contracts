@@ -7,15 +7,15 @@ import {IEquitoVerifier} from "../../src/interfaces/IEquitoVerifier.sol";
 
 /// Mock Verifier that returns true for all non-empty proofs.
 contract MockVerifier is IEquitoVerifier {
-    function verifyMessages(
-        EquitoMessage[] calldata messages,
+    function verifyMessage(
+        EquitoMessage calldata message,
         bytes calldata proof
     ) external override returns (bool) {
         return proof.length > 0;
     }
 
-    function verifySignatures(
-        bytes32 hash,
+    function verifyMessages(
+        EquitoMessage[] calldata messages,
         bytes calldata proof
     ) external override returns (bool) {
         return proof.length > 0;

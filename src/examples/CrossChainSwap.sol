@@ -103,7 +103,7 @@ contract CrossChainSwap is EquitoApp {
     function _receiveMessageFromPeer(
         EquitoMessage calldata message, 
         bytes calldata messageData
-    ) internal override {
+    ) external payable override {
         TokenAmount memory tokenAmount = abi.decode(
             messageData,
             (TokenAmount)

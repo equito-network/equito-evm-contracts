@@ -92,42 +92,41 @@ contract Router is IRouter, IEquitoReceiver {
         return keccak256(abi.encode(newMessage));
     }
 
-    /// @notice Routes messages to the appropriate receiver contracts.
-    /// @param messages The list of messages to be routed.
-    /// @param messageData The data of the messages to be routed.
-    /// @param verifierIndex The index of the verifier used to verify the messages.
-    /// @param proof The proof provided by the verifier.
-    function deliverAndExecuteMessages(
-        EquitoMessage[] calldata messages,
-        bytes[] calldata messageData,
+    /// @notice Verify and execute a message with the appropriate receiver contract.
+    /// @param message The message to be executed.
+    /// @param messageData The data of the message to be executed.
+    /// @param verifierIndex The index of the verifier used to verify the message.
+    /// @param proof The proof to provide to the verifier.
+    function deliverAndExecuteMessage(
+        EquitoMessage calldata message,
+        bytes calldata messageData,
         uint256 verifierIndex,
         bytes calldata proof
-    ) external {
+    ) external payable {
         if (verifierIndex >= verifiers.length) {
             revert Errors.InvalidVerifierIndex();
         }
 
-        if (!verifiers[verifierIndex].verifyMessages(messages, proof)) {
+        if (!verifiers[verifierIndex].verifyMessage(message, proof)) {
             revert Errors.InvalidMessagesProof();
         }
 
-        for (uint256 i = 0; i < messages.length; ) {
-            bytes32 messageHash = keccak256(abi.encode(messages[i]));
+        bytes32 messageHash = keccak256(abi.encode(message));
 
-            if (
-                messages[i].destinationChainSelector == chainSelector &&
-                !isDuplicateMessage[messageHash] &&
-                messages[i].hashedData == keccak256(messageData[i])
-            ) {
-                address receiver = 
-                    EquitoMessageLibrary.bytes64ToAddress(messages[i].receiver);
-                IEquitoReceiver(receiver)
-                    .receiveMessage(messages[i], messageData[i]);
-                isDuplicateMessage[messageHash] = true;
-                emit MessageExecuted(messageHash);
-            }
-
-            unchecked { ++i; }
+        if (
+            message.destinationChainSelector == chainSelector &&
+            !isDuplicateMessage[messageHash] &&
+            message.hashedData == keccak256(messageData)
+        ) {
+            address receiver = EquitoMessageLibrary.bytes64ToAddress(
+                message.receiver
+            );
+            IEquitoReceiver(receiver).receiveMessage{value: msg.value}(
+                message,
+                messageData
+            );
+            isDuplicateMessage[messageHash] = true;
+            emit MessageExecuted(messageHash);
         }
     }
 
@@ -166,34 +165,31 @@ contract Router is IRouter, IEquitoReceiver {
         }
     }
 
-    /// @notice Executes the stored messages.
-    /// @param messages The list of messages to be executed.
-    /// @param messageData The data of the messages to be executed.
-    function executeMessages(
-        EquitoMessage[] calldata messages,
-        bytes[] calldata messageData
-    ) external {
-        uint256 _chainSelector = chainSelector;
+    /// @notice Executes a stored message.
+    /// @param message The message to be executed.
+    /// @param messageData The data of the message to be executed.
+    function executeMessage(
+        EquitoMessage calldata message,
+        bytes calldata messageData
+    ) external payable {
+        bytes32 messageHash = keccak256(abi.encode(message));
 
-        for (uint256 i = 0; i < messages.length; ) {
-            bytes32 messageHash = keccak256(abi.encode(messages[i]));
-
-            if (
-                messages[i].destinationChainSelector == _chainSelector &&
-                storedMessages[messageHash] &&
-                !isDuplicateMessage[messageHash] &&
-                messages[i].hashedData == keccak256(messageData[i])
-            ) {
-                address receiver = 
-                    EquitoMessageLibrary.bytes64ToAddress(messages[i].receiver);
-                IEquitoReceiver(receiver)
-                    .receiveMessage(messages[i], messageData[i]);
-                isDuplicateMessage[messageHash] = true;
-                delete storedMessages[messageHash];
-                emit MessageExecuted(messageHash);
-            }
-
-            unchecked { ++i; }
+        if (
+            message.destinationChainSelector == chainSelector &&
+            storedMessages[messageHash] &&
+            !isDuplicateMessage[messageHash] &&
+            message.hashedData == keccak256(messageData)
+        ) {
+            address receiver = EquitoMessageLibrary.bytes64ToAddress(
+                message.receiver
+            );
+            IEquitoReceiver(receiver).receiveMessage{value: msg.value}(
+                message,
+                messageData
+            );
+            isDuplicateMessage[messageHash] = true;
+            delete storedMessages[messageHash];
+            emit MessageExecuted(messageHash);
         }
     }
 
@@ -210,7 +206,7 @@ contract Router is IRouter, IEquitoReceiver {
     function receiveMessage(
         EquitoMessage calldata message,
         bytes calldata messageData
-    ) external override onlySovereign(message) {
+    ) external payable override onlySovereign(message) {
         if (msg.sender != address(this)) {
             revert Errors.InvalidRouter(msg.sender);
         }

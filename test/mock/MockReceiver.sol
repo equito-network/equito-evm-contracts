@@ -12,7 +12,7 @@ contract MockReceiver is IEquitoReceiver {
     function receiveMessage(
         EquitoMessage calldata _message, 
         bytes calldata _messageData
-    ) external override {
+    ) external payable override {
         message = _message;
         messageData = _messageData;
     }

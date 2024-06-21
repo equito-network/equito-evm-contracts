@@ -15,10 +15,6 @@ library Errors {
     /// @notice Thrown when the proof for verifying messages is invalid.
     error InvalidMessagesProof();
 
-    /// @notice Thrown when the proof for adding a new verifier is invalid.
-    /// @param verifier The address of the verifier that failed to be added.
-    error InvalidNewVerifierProof(address verifier);
-
     /// @notice Thrown when the verifier index provided is out of bounds.
     error InvalidVerifierIndex();
 
@@ -60,4 +56,7 @@ library Errors {
 
     /// @notice Thrown when attempting to set the router, but the router is already set.
     error RouterAlreadySet();
+
+    /// @notice Thrown when an invalid sender is calling a function.
+    error InvalidSender(address sender);
 }
