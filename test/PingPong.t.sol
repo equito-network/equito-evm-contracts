@@ -5,14 +5,16 @@ pragma solidity ^0.8.23;
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {PingPong} from "../src/examples/PingPong.sol";
+import {Router} from "../src/Router.sol";
 import {MockVerifier} from "./mock/MockVerifier.sol";
-import {MockRouter} from "./mock/MockRouter.sol";
+import {MockEquitoFees} from "./mock/MockEquitoFees.sol";
 import {bytes64, EquitoMessage, EquitoMessageLibrary} from "../src/libraries/EquitoMessageLibrary.sol";
 import {Errors} from "../src/libraries/Errors.sol";
 
 contract PingPongTest is Test {
+    Router router;
     MockVerifier verifier;
-    MockRouter router;
+    MockEquitoFees fees;
     PingPong pingPong;
 
     address constant OWNER = address(0x03132);
@@ -22,15 +24,32 @@ contract PingPongTest is Test {
     address peer1 = address(0x506565722031);
     address peer2 = address(0x506565722032);
 
-    event PingSent(uint256 indexed destinationChainSelector, bytes32 messageHash);
-    event PingReceived(uint256 indexed sourceChainSelector, bytes32 messageHash);
-    event PongReceived(uint256 indexed sourceChainSelector, bytes32 messageHash);
+    event PingSent(
+        uint256 indexed destinationChainSelector,
+        bytes32 messageHash
+    );
+    event PingReceived(
+        uint256 indexed sourceChainSelector,
+        bytes32 messageHash
+    );
+    event PongReceived(
+        uint256 indexed sourceChainSelector,
+        bytes32 messageHash
+    );
+
+    event MessageSendRequested(EquitoMessage message, bytes messageData);
 
     function setUp() public {
         vm.prank(OWNER);
 
         verifier = new MockVerifier();
-        router = new MockRouter(1, address(verifier), address(verifier), EquitoMessageLibrary.addressToBytes64(equitoAddress));
+        fees = new MockEquitoFees();
+        router = new Router(
+            1,
+            address(verifier),
+            address(fees),
+            EquitoMessageLibrary.addressToBytes64(equitoAddress)
+        );
         pingPong = new PingPong(address(router));
 
         uint256[] memory chainIds = new uint256[](2);
@@ -42,36 +61,78 @@ contract PingPongTest is Test {
         addresses[1] = EquitoMessageLibrary.addressToBytes64(peer2);
 
         pingPong.setPeers(chainIds, addresses);
+
+        vm.deal(address(ALICE), 10 ether);
     }
 
-   function testSendPing() public {
+    function testSendPing() public {
         uint256 destinationChainSelector = 2;
         string memory pingMessage = "Ping!";
         bytes memory messageData = abi.encode("ping", pingMessage);
 
-        vm.prank(address(router));
+        uint256 fee = router.getFee(address(pingPong));
+
+        vm.prank(address(ALICE));
         vm.expectEmit(true, true, true, true);
-        emit PingSent(destinationChainSelector, keccak256(abi.encode(EquitoMessageLibrary.addressToBytes64(peer2), destinationChainSelector, messageData)));
-        pingPong.sendPing{value: 0}(destinationChainSelector, pingMessage);
+        emit PingSent(
+            destinationChainSelector,
+            keccak256(
+                abi.encode(
+                    EquitoMessage({
+                        blockNumber: 1,
+                        sourceChainSelector: 1,
+                        sender: EquitoMessageLibrary.addressToBytes64(
+                            address(pingPong)
+                        ),
+                        destinationChainSelector: destinationChainSelector,
+                        receiver: EquitoMessageLibrary.addressToBytes64(peer2),
+                        hashedData: keccak256(messageData)
+                    })
+                )
+            )
+        );
+
+        pingPong.sendPing{value: fee}(destinationChainSelector, pingMessage);
     }
 
-   function testReceivePingAndSendPong() public {
-        uint256 destinationChainSelector = 2;
-        string memory pingMessage = "Ping!";
+    function testReceivePingAndSendPong() public {
+        string memory pingMessage = "Equito";
         bytes memory messageData = abi.encode("ping", pingMessage);
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
-            sourceChainSelector: 1,
-            sender: EquitoMessageLibrary.addressToBytes64(peer1),
-            destinationChainSelector: destinationChainSelector,
-            receiver: EquitoMessageLibrary.addressToBytes64(peer2),
+            sourceChainSelector: 2,
+            sender: EquitoMessageLibrary.addressToBytes64(peer2),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(pingPong)),
             hashedData: keccak256(messageData)
         });
 
-        vm.prank(address(router));
-        vm.expectEmit(true, true, true, true);
-        emit PingReceived(1, keccak256(abi.encode(message)));
-        pingPong.receiveMessage(message, messageData);
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = message;
+        router.deliverMessages(messages, 0, abi.encode(1));
+
+        uint256 fee = router.getFee(address(pingPong));
+
+        vm.expectEmit(address(pingPong));
+        emit PingReceived(2, keccak256(abi.encode(message)));
+
+        vm.expectEmit(address(router));
+        emit MessageSendRequested(
+            EquitoMessage({
+                blockNumber: 1,
+                sourceChainSelector: 1,
+                sender: EquitoMessageLibrary.addressToBytes64(
+                    address(pingPong)
+                ),
+                destinationChainSelector: 2,
+                receiver: EquitoMessageLibrary.addressToBytes64(peer2),
+                hashedData: keccak256(abi.encode("pong", pingMessage))
+            }),
+            abi.encode("pong", pingMessage)
+        );
+
+        vm.prank(address(ALICE));
+        router.executeMessage{value: fee}(message, messageData);
     }
 
     function testReceivePong() public {
@@ -130,49 +191,5 @@ contract PingPongTest is Test {
 
         vm.expectRevert(Errors.InvalidMessageSender.selector);
         pingPong.receiveMessage(message, messageData);
-    }
-
-    function testPingPongFlow() public {
-        // Step 1: Send Ping
-        uint256 destinationChainSelector = 2;
-        string memory pingMessage = "Ping from Peer 1 to Peer 2";
-        bytes memory pingMessageData = abi.encode("ping", pingMessage);
-        EquitoMessage memory message1 = EquitoMessage({
-            blockNumber: 1,
-            sourceChainSelector: 1,
-            sender: EquitoMessageLibrary.addressToBytes64(peer1),
-            destinationChainSelector: 2,
-            receiver: EquitoMessageLibrary.addressToBytes64(peer2),
-            hashedData: keccak256(pingMessageData)
-        });
-
-        vm.prank(address(router));
-        vm.expectEmit(true, true, true, true);
-        emit PingSent(destinationChainSelector, keccak256(abi.encode(EquitoMessageLibrary.addressToBytes64(peer2), destinationChainSelector, pingMessageData)));
-        pingPong.sendPing{value: 0}(destinationChainSelector, pingMessage);
-
-        // Step 2: Simulate receiving the Ping and sending Pong
-        vm.prank(address(router));
-        vm.expectEmit(true, true, true, true);
-        emit PingReceived(1, keccak256(abi.encode(message1)));
-        pingPong.receiveMessage(message1, pingMessageData);
-
-        // Step 3: Simulate receiving the Pong
-        string memory pongMessage = "Pong from Peer 2 to Peer 1";
-        bytes memory pongMessageData = abi.encode("pong", pongMessage);
-        EquitoMessage memory message2 = EquitoMessage({
-            blockNumber: 1,
-            sourceChainSelector: 2,
-            sender: EquitoMessageLibrary.addressToBytes64(peer2),
-            destinationChainSelector: 1,
-            receiver: EquitoMessageLibrary.addressToBytes64(peer1),
-            hashedData: keccak256(pongMessageData)
-        });
-
-        vm.prank(address(router));
-
-        vm.expectEmit(true, true, true, true);
-        emit PongReceived(2, keccak256(abi.encode(message2)));
-        pingPong.receiveMessage(message2, pongMessageData);
     }
 }

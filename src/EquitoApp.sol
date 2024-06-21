@@ -33,6 +33,14 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
         _;
     }
 
+    /// @notice Modifier to restrict access to only to this contract.
+    /// @dev As internal functions can't be payable, this workaround is needed 
+    ///      to make the `_receiveMessageFrom` functions act like internal.
+    modifier onlySelf() {
+        if (msg.sender != address(this)) revert Errors.InvalidSender(msg.sender);
+        _;
+    }
+
     /// @notice Allows the owner to set the peer addresses for different chain IDs.
     /// @param chainIds The list of chain IDs.
     /// @param addresses The list of addresses corresponding to the chain IDs.
@@ -55,24 +63,6 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
         }
     }
 
-    /// @notice Sends a cross-chain message using Equito.
-    /// @param receiver The address of the receiver.
-    /// @param destinationChainSelector The identifier of the destination chain.
-    /// @param data The message data.
-    /// @return The message ID.
-    function sendMessage(
-        bytes64 calldata receiver,
-        uint256 destinationChainSelector,
-        bytes calldata data
-    ) external payable returns (bytes32) {
-        return
-            router.sendMessage{value: msg.value}(
-                receiver,
-                destinationChainSelector,
-                data
-            );
-    }
-
     /// @notice Receives a cross-chain message from the Router Contract.
     ///         It is a wrapper function for the `_receiveMessage` function, that needs to be overridden.
     ///         Only the Router Contract is allowed to call this function.
@@ -81,13 +71,13 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     function receiveMessage(
         EquitoMessage calldata message,
         bytes calldata messageData
-    ) external override onlyRouter {
+    ) external payable override onlyRouter {
         bytes64 memory peerAddress = peers[message.sourceChainSelector];
      
         if (peerAddress.lower != message.sender.lower || peerAddress.upper != message.sender.upper) {
-            _receiveMessageFromNonPeer(message, messageData);
+            this._receiveMessageFromNonPeer{value: msg.value}(message, messageData);
         } else {
-            _receiveMessageFromPeer(message, messageData);
+            this._receiveMessageFromPeer{value: msg.value}(message, messageData);
         }
     }
 
@@ -97,7 +87,7 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     function _receiveMessageFromPeer(
         EquitoMessage calldata message,
         bytes calldata messageData
-    ) internal virtual {}
+    ) external payable virtual onlySelf {}
 
     /// @notice The logic for receiving a cross-chain message from a non-peer.
     ///         The default implementation reverts the transaction.
@@ -106,7 +96,7 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     function _receiveMessageFromNonPeer(
         EquitoMessage calldata message,
         bytes calldata messageData    
-    ) internal virtual {
+    ) external payable virtual onlySelf {
         revert Errors.InvalidMessageSender();
     }
 }

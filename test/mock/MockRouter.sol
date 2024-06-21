@@ -4,28 +4,16 @@ pragma solidity ^0.8.23;
 
 import {IRouter} from "../../src/Router.sol";
 import {IEquitoFees} from "../../src/interfaces/IEquitoFees.sol";
-import {IEquitoReceiver} from "../../src/interfaces/IEquitoReceiver.sol";
 import {bytes64, EquitoMessage} from "../../src/libraries/EquitoMessageLibrary.sol";
 import {IEquitoVerifier} from "../../src/interfaces/IEquitoVerifier.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-contract MockRouter is IRouter, IEquitoReceiver {
+contract MockRouter is IRouter {
     uint256 public immutable chainSelector;
-
     bytes64 public equitoAddress;
 
-    IEquitoVerifier[] public verifiers;
-
-    mapping(bytes32 => bool) public isDuplicateMessage;
-
-    IEquitoFees public equitoFees;
-
-    constructor(uint256 _chainSelector, address _initialVerifier, address _equitoFees, bytes64 memory _equitoAddress) {
+    constructor(uint256 _chainSelector, bytes64 memory _equitoAddress) {
         chainSelector = _chainSelector;
-        verifiers.push(IEquitoVerifier(_initialVerifier));
-
-        equitoFees = IEquitoFees(_equitoFees);
-
         equitoAddress = _equitoAddress;
     }
 
@@ -37,12 +25,12 @@ contract MockRouter is IRouter, IEquitoReceiver {
         return keccak256(abi.encode(receiver, destinationChainSelector, data));
     }
 
-    function deliverAndExecuteMessages(
-        EquitoMessage[] calldata messages,
-        bytes[] calldata messageData,
+    function deliverAndExecuteMessage(
+        EquitoMessage calldata message,
+        bytes calldata messageData,
         uint256 verifierIndex,
         bytes calldata proof
-    ) external {}
+    ) external payable {}
 
     function deliverMessages(
         EquitoMessage[] calldata messages,
@@ -50,25 +38,12 @@ contract MockRouter is IRouter, IEquitoReceiver {
         bytes calldata proof
     ) external {}
 
-    function executeMessages(
-        EquitoMessage[] calldata messages,
-        bytes[] calldata messageData
-    ) external {}
-
-    function receiveMessage(
-        EquitoMessage calldata message,
+    function executeMessage(
+        EquitoMessage calldata messages,
         bytes calldata messageData
-    ) external override {}
+    ) external payable {}
 
-    function _addVerifier(
-        address _newVerifier,
-        uint256 verifierIndex,
-        bytes calldata proof
-    ) internal {}
-
-    function _setEquitoFees(
-        address _equitoFees
-    ) internal {}
-
-    function _setEquitoAddress(bytes64 memory _equitoAddress) internal {}
+    function _setEquitoAddress(bytes64 memory _equitoAddress) internal {
+        equitoAddress = _equitoAddress;
+    }
 }

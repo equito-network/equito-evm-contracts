@@ -107,8 +107,8 @@ contract RouterTest is Test {
         assertEq(keccak256(abi.encode(message)), messageHash);
     }
 
-    /// @dev Tests delivering and executing of messages with a single message successfully
-    function testDeliverAndExecuteMessagesSuccess() public {
+    /// @dev Tests delivering and executing of a message
+    function testDeliverAndExecuteMessageSuccess() public {
         vm.prank(ALICE);
         bytes memory data = abi.encode("Hello, World!");
 
@@ -121,26 +121,15 @@ contract RouterTest is Test {
             hashedData: keccak256(data)
         });
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = message;
-
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = data;
-
-        router.deliverAndExecuteMessages(
-            messages,
-            messageData,
-            0,
-            abi.encode(1)
-        );
+        router.deliverAndExecuteMessage(message, data, 0, abi.encode(1));
         assertTrue(
-            router.isDuplicateMessage(keccak256(abi.encode(messages[0]))),
+            router.isDuplicateMessage(keccak256(abi.encode(message))),
             "Message not delivered"
         );
     }
 
     /// @dev Tests delivering and executing of messages with an invalid verifier index
-    function testDeliverAndExecuteMessagesInvalidVerifierIndex() public {
+    function testDeliverAndExecuteMessageInvalidVerifierIndex() public {
         bytes memory proof = abi.encode("proof");
         uint256 invalidVerifierIndex = 1;
         bytes memory data = abi.encode("Hello, World!");
@@ -154,27 +143,20 @@ contract RouterTest is Test {
             hashedData: keccak256(data)
         });
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = message;
-
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = data;
-
         vm.expectRevert(
             abi.encodeWithSelector(Errors.InvalidVerifierIndex.selector)
         );
-        router.deliverAndExecuteMessages(
-            messages,
-            messageData,
+        router.deliverAndExecuteMessage(
+            message,
+            data,
             invalidVerifierIndex,
             proof
         );
     }
 
     /// @dev Tests delivering and executing of messages with an invalid proof
-    function testDeliverAndExecuteMessagesInvalidProof() public {
+    function testDeliverAndExecuteMessageInvalidProof() public {
         bytes memory invalidProof = "";
-        uint256 verifierIndex = 0;
 
         bytes memory data = abi.encode("Hello, World!");
 
@@ -187,25 +169,14 @@ contract RouterTest is Test {
             hashedData: keccak256(data)
         });
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = message;
-
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = data;
-
         vm.expectRevert(
             abi.encodeWithSelector(Errors.InvalidMessagesProof.selector)
         );
-        router.deliverAndExecuteMessages(
-            messages,
-            messageData,
-            verifierIndex,
-            invalidProof
-        );
+        router.deliverAndExecuteMessage(message, data, 0, invalidProof);
     }
 
     /// @dev Tests delivering and executing of messages with duplicate messages
-    function testDeliverAndExecuteMessagesWithDuplicateMessage() public {
+    function testDeliverAndExecuteMessageWithDuplicateMessage() public {
         vm.prank(ALICE);
         bytes memory data1 = abi.encode("Hello, World!");
 
@@ -229,25 +200,11 @@ contract RouterTest is Test {
             hashedData: keccak256(data2)
         });
 
-        EquitoMessage[] memory messages = new EquitoMessage[](3);
-        messages[0] = message1;
-        messages[1] = message2;
-        messages[2] = message1;
-
-        bytes[] memory messageData = new bytes[](3);
-        messageData[0] = data1;
-        messageData[1] = data2;
-        messageData[2] = data1;
-
         bytes32 message1Hash = keccak256(abi.encode(message1));
         bytes32 message2Hash = keccak256(abi.encode(message2));
 
-        router.deliverAndExecuteMessages(
-            messages,
-            messageData,
-            0,
-            abi.encode(1)
-        );
+        router.deliverAndExecuteMessage(message1, data1, 0, abi.encode(1));
+        router.deliverAndExecuteMessage(message2, data2, 0, abi.encode(1));
 
         assertTrue(
             router.isDuplicateMessage(message1Hash),
@@ -258,6 +215,9 @@ contract RouterTest is Test {
             "Message not delivered"
         );
 
+        assertEq(receiver.getMessage().hashedData, message2.hashedData);
+
+        router.deliverAndExecuteMessage(message1, data1, 0, abi.encode(1));
         assertEq(receiver.getMessage().hashedData, message2.hashedData);
     }
 
@@ -336,7 +296,7 @@ contract RouterTest is Test {
     }
 
     /// @dev Tests executing of messages with a single message successfully
-    function testExecuteMessagesSuccess() public {
+    function testExecuteMessageSuccess() public {
         vm.prank(ALICE);
         bytes memory data = abi.encode("Hello, World!");
 
@@ -363,7 +323,7 @@ contract RouterTest is Test {
         vm.expectEmit(true, true, false, true);
         emit MessageExecuted(keccak256(abi.encode(message)));
 
-        router.executeMessages(messages, messageData);
+        router.executeMessage(message, data);
 
         assertTrue(
             router.isDuplicateMessage(messageHash),
@@ -376,7 +336,7 @@ contract RouterTest is Test {
     }
 
     /// @dev Tests delivering and executing of messages to delivered for execution
-    function testExecuteMessagesMessageNotDelivered() public {
+    function testExecuteMessageMessageNotDelivered() public {
         vm.prank(ALICE);
         bytes memory data = abi.encode("Hello, World!");
 
@@ -389,13 +349,7 @@ contract RouterTest is Test {
             hashedData: keccak256(data)
         });
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = message;
-
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = data;
-
-        router.executeMessages(messages, messageData);
+        router.executeMessage(message, data);
 
         assertFalse(
             keccak256(abi.encode(receiver.getMessage())) ==
@@ -519,26 +473,18 @@ contract RouterTest is Test {
             hashedData: keccak256(data)
         });
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = message;
-        bytes[] memory messageData = new bytes[](1);
-        messageData[0] = data;
+        bytes32 messageHash = keccak256(abi.encode(message));
 
-        router.deliverAndExecuteMessages(
-            messages,
-            messageData,
-            0,
-            abi.encode(1)
-        );
+        router.deliverAndExecuteMessage(message, data, 0, abi.encode(1));
 
         Vm.Log[] memory entriesDeliverExecute = vm.getRecordedLogs();
         assertEq(entriesDeliverExecute.length, 0, "No logs should be emitted");
         assertFalse(
-            router.storedMessages(keccak256(abi.encode(messages[0]))),
+            router.storedMessages(messageHash),
             "Message should not be delivered"
         );
         assertFalse(
-            router.isDuplicateMessage(keccak256(abi.encode(messages[0]))),
+            router.isDuplicateMessage(messageHash),
             "Message should not be marked as duplicate"
         );
         assertNotEq(
@@ -547,19 +493,22 @@ contract RouterTest is Test {
             "Message should not be received"
         );
 
+        EquitoMessage[] memory messages = new EquitoMessage[](1);
+        messages[0] = message;
         router.deliverMessages(messages, 0, abi.encode(1));
+
         Vm.Log[] memory entriesDeliver = vm.getRecordedLogs();
         assertEq(entriesDeliver.length, 0, "No logs should be emitted");
         assertFalse(
-            router.storedMessages(keccak256(abi.encode(messages[0]))),
+            router.storedMessages(messageHash),
             "Message should not be delivered"
         );
 
-        router.executeMessages(messages, messageData);
+        router.executeMessage(message, data);
         Vm.Log[] memory entriesExecute = vm.getRecordedLogs();
         assertEq(entriesExecute.length, 0, "No logs should be emitted");
         assertFalse(
-            router.isDuplicateMessage(keccak256(abi.encode(messages[0]))),
+            router.isDuplicateMessage(messageHash),
             "Message should not be marked as duplicate"
         );
         assertNotEq(

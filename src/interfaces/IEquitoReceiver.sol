@@ -10,5 +10,8 @@ interface IEquitoReceiver {
     /// @notice Receives a cross-chain message from the Router contract.
     /// @param message The Equito message received.
     /// @param messageData The data of the message.
-    function receiveMessage(EquitoMessage calldata message, bytes calldata messageData) external;
+    function receiveMessage(
+        EquitoMessage calldata message,
+        bytes calldata messageData
+    ) external payable;
 }
