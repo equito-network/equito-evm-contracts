@@ -400,13 +400,74 @@ contract ECDSAVerifierTest is Test {
         emit FeesTransferred(liquidityProvider, session, transferAmount);
 
         vm.prank(address(this));
-        verifier.transferFees(liquidityProvider, transferAmount);
+        verifier.transferFees(liquidityProvider, session, transferAmount);
 
         assertEq(
             address(verifier).balance,
             initialAmount - transferAmount,
             "Verifier balance mismatch after transfer"
         );
+        assertEq(
+            liquidityProvider.balance,
+            transferAmount,
+            "Liquidity provider balance mismatch after transfer"
+        );
+    }
+
+    /// @notice Tests the transfer fees with previous session ID.
+    function testTransferFeesWithPreviousSessionId() public {
+        // Pay fee for session 0
+        uint256 initialAmount = 0.1 ether;
+        verifier.payFee{value: initialAmount}(ALICE);
+
+        // Updated session to 1
+        (, uint256 alithSecret) = makeAddrAndKey("alith");
+        (, uint256 baltatharSecret) = makeAddrAndKey("baltathar");
+        (address charleth, uint256 charlethSecret) = makeAddrAndKey("charleth");
+
+        uint256 session = verifier.session();
+
+        address[] memory validators = new address[](1);
+        validators[0] = charleth;
+
+        bytes memory messageData  = abi.encode(bytes1(0x01), session, validators);
+
+        EquitoMessage memory message = EquitoMessage({
+            blockNumber: 0,
+            sourceChainSelector: 0,
+            sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
+            destinationChainSelector: 1,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(verifier)),
+            hashedData: keccak256(messageData)
+        });
+
+        bytes32 messageHash = keccak256(abi.encode(message));
+
+        bytes memory proof = bytes.concat(
+            signMessage(messageHash, charlethSecret),
+            signMessage(messageHash, alithSecret),
+            signMessage(messageHash, baltatharSecret)
+        );
+
+        router.deliverAndExecuteMessage(message, messageData, 0, proof);
+
+        // Transfer fees for session 0
+        uint256 prevSession = verifier.session() - 1;
+        uint256 transferAmount = 0.1 ether;
+        address liquidityProvider = BOB;
+
+        assertEq(
+            liquidityProvider.balance,
+            0,
+            "Initial liquidity provider balance should be 0"
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit FeesTransferred(liquidityProvider, prevSession, transferAmount);
+
+        vm.prank(address(this));
+        verifier.transferFees(liquidityProvider, prevSession, transferAmount);
+
         assertEq(
             liquidityProvider.balance,
             transferAmount,
@@ -430,9 +491,39 @@ contract ECDSAVerifierTest is Test {
         );
 
         uint256 transferAmount = 0.5 ether;
+        uint256 session = verifier.session();
 
         vm.expectRevert(Errors.InvalidLiquidityProvider.selector);
-        verifier.transferFees(address(0), transferAmount);
+        verifier.transferFees(address(0), session, transferAmount);
+    }
+
+    /// @notice Tests the transfer fees with an invalid session ID.
+    function testTransferFeesInvalidSessionId() public {
+        uint256 initialAmount = 1 ether;
+
+        vm.deal(ALICE, initialAmount);
+        vm.startPrank(ALICE);
+        verifier.payFee{value: initialAmount}(ALICE);
+        vm.stopPrank();
+
+        assertEq(
+            address(verifier).balance,
+            initialAmount,
+            "Verifier balance mismatch after fee payment"
+        );
+
+        uint256 transferAmount = 0.5 ether;
+        uint256 invalidSessionId = verifier.session() + 1;
+        address liquidityProvider = BOB;
+
+        assertEq(
+            liquidityProvider.balance,
+            0,
+            "Initial liquidity provider balance should be 0"
+        );
+
+        vm.expectRevert(Errors.InvalidSessionId.selector);
+        verifier.transferFees(liquidityProvider, invalidSessionId, transferAmount);
     }
 
     /// @notice Tests the transfer fees when the amount exceeds available fees.
@@ -465,7 +556,7 @@ contract ECDSAVerifierTest is Test {
         emit FeesTransferred(liquidityProvider, session, initialAmount);
 
         vm.prank(address(verifier));
-        verifier.transferFees(liquidityProvider, transferAmount);
+        verifier.transferFees(liquidityProvider, session, transferAmount);
 
         assertEq(
             address(verifier).balance,
@@ -495,12 +586,13 @@ contract ECDSAVerifierTest is Test {
         );
 
         uint256 transferAmount = 0.5 ether;
+        uint256 session = verifier.session();
         address payable invalidLiquidityProvider = payable(
             address(new MockInvalidReceiver())
         );
 
         vm.expectRevert(Errors.TransferFailed.selector);
-        verifier.transferFees(invalidLiquidityProvider, transferAmount);
+        verifier.transferFees(invalidLiquidityProvider, session, transferAmount);
     }
 
     /// @notice Tests the receive message with update validators command.
@@ -655,6 +747,7 @@ contract ECDSAVerifierTest is Test {
         bytes memory messageData = abi.encode(
             bytes1(0x03),
             liquidityProvider,
+            session,
             transferAmount
         );
 

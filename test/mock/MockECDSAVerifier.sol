@@ -15,8 +15,8 @@ contract MockECDSAVerifier is ECDSAVerifier {
         address _oracle
     ) ECDSAVerifier(_validators, _session, _oracle) {}
 
-    function transferFees(address liquidityProvider, uint256 amount) external {
-        _transferFees(liquidityProvider, amount);
+    function transferFees(address liquidityProvider, uint256 sessionId, uint256 amount) external {
+        _transferFees(liquidityProvider, sessionId, amount);
     }
 
     function setMessageCostUsd(uint256 _messageCostUsd) external {
