@@ -111,6 +111,8 @@ contract PingPongTest is Test {
         messages[0] = message;
         router.deliverMessages(messages, 0, abi.encode(1));
 
+        uint256 feeContractBalance = address(fees).balance;
+
         uint256 fee = router.getFee(address(pingPong));
 
         vm.expectEmit(address(pingPong));
@@ -133,6 +135,8 @@ contract PingPongTest is Test {
 
         vm.prank(address(ALICE));
         router.executeMessage{value: fee}(message, messageData);
+
+        assertEq(address(fees).balance, feeContractBalance + fee);
     }
 
     function testReceivePong() public {

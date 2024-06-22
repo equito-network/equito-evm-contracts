@@ -155,28 +155,4 @@ contract EquitoAppTest is Test {
         app.receiveMessage(message, hex"123456");
     }
 
-    /// @dev Tests the `_receiveMessage` functions fail when the sender address is not the actual contract.
-    ///      This ensures the overrides keep the `onlySelf` modifier.
-    function testInvalidSenderFails() public {
-        EquitoMessage memory message = EquitoMessage({
-            blockNumber: 1,
-            sourceChainSelector: 1,
-            sender: EquitoMessageLibrary.addressToBytes64(BOB),
-            destinationChainSelector: 2,
-            receiver: EquitoMessageLibrary.addressToBytes64(address(app)),
-            hashedData: keccak256(hex"123456")
-        });
-
-        vm.prank(ALICE);
-        vm.expectRevert(
-            abi.encodeWithSelector(Errors.InvalidSender.selector, ALICE)
-        );
-        app._receiveMessageFromPeer(message, hex"123456");
-
-        vm.prank(BOB);
-        vm.expectRevert(
-            abi.encodeWithSelector(Errors.InvalidSender.selector, BOB)
-        );
-        app._receiveMessageFromNonPeer(message, hex"123456");
-    }
 }
