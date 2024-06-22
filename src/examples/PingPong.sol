@@ -74,7 +74,7 @@ contract PingPong is EquitoApp {
     function _receiveMessageFromPeer(
         EquitoMessage calldata message,
         bytes calldata messageData
-    ) external payable override {
+    ) internal override {
         (string memory messageType, string memory payload) = abi.decode(
             messageData,
             (string, string)
