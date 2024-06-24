@@ -360,26 +360,34 @@ contract RouterTest is Test {
 
     /// @notice Tests the receive message with add verifier command.
     function testReceiveMessageAddVerifier() external {
-        bytes memory data = abi.encode(bytes1(0x01), BOB);
+        MockVerifier newVerifier = new MockVerifier();
+
+        bytes memory data = abi.encode(bytes1(0x01), address(newVerifier));
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 0,
             sender: EquitoMessageLibrary.addressToBytes64(equitoAddress),
             destinationChainSelector: 1,
-            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
+            receiver: EquitoMessageLibrary.addressToBytes64(address(router)),
             hashedData: keccak256(data)
         });
 
         vm.prank(address(router));
         vm.expectEmit(true, true, true, true);
-        emit VerifierAdded(BOB);
+        emit VerifierAdded(address(newVerifier));
         router.receiveMessage(message, data);
 
         assertEq(
             address(router.verifiers(1)),
-            BOB,
-            "The new verifier should be BOB"
+            address(newVerifier),
+            "The new verifier should be set"
+        );
+
+        assertEq(
+            newVerifier.router(),
+            address(router),
+            "The router address should be set"
         );
     }
 

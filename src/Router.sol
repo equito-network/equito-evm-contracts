@@ -242,7 +242,9 @@ contract Router is IRouter, IEquitoReceiver {
     /// @notice Adds a new verifier to the Router contract.
     /// @param _newVerifier The address of the new verifier.
     function _addVerifier(address _newVerifier) internal {
-        verifiers.push(IEquitoVerifier(_newVerifier));
+        IEquitoVerifier verifier = IEquitoVerifier(_newVerifier);
+        verifier.setRouter(address(this));
+        verifiers.push(verifier);
         emit VerifierAdded(_newVerifier);
     }
 

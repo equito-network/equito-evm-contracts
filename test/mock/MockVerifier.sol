@@ -7,6 +7,8 @@ import {IEquitoVerifier} from "../../src/interfaces/IEquitoVerifier.sol";
 
 /// Mock Verifier that returns true for all non-empty proofs.
 contract MockVerifier is IEquitoVerifier {
+    address public router;
+
     function verifyMessage(
         EquitoMessage calldata message,
         bytes calldata proof
@@ -23,5 +25,6 @@ contract MockVerifier is IEquitoVerifier {
 
     function setRouter(address _router) external override {
         require(_router != address(0), "Router address cannot be zero");
+        router = _router;
     }
 }
