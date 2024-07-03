@@ -20,7 +20,7 @@ interface IRouter {
     /// @param messageHash The hash of the message that has been delivered.
     event MessageDelivered(bytes32 messageHash);
 
-    /// @notice Emitted when a messag has successfully been executed.
+    /// @notice Emitted when a message has successfully been executed.
     /// @param messageHash The hash of the message that has been executed.
     event MessageExecuted(bytes32 messageHash);
 

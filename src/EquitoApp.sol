@@ -56,7 +56,7 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     }
 
     /// @notice Receives a cross-chain message from the Router Contract.
-    ///         It is a wrapper function for the `_receiveMessage` function, that needs to be overridden.
+    ///         It is a wrapper function for the `_receiveMessage` functions, that need to be overridden.
     ///         Only the Router Contract is allowed to call this function.
     /// @param message The Equito message received.
     /// @param messageData The data of the message received.
