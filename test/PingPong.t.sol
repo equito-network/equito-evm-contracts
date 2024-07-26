@@ -17,12 +17,10 @@ contract PingPongTest is Test {
     MockEquitoFees fees;
     PingPong pingPong;
 
-    address constant OWNER = address(0x03132);
-    address constant ALICE = address(0xA11CE);
-    address constant BOB = address(0xB0B);
-    address equitoAddress = address(0x45717569746f);
-    address peer1 = address(0x506565722031);
-    address peer2 = address(0x506565722032);
+    address sender = address(0xa0);
+    address equitoAddress = address(0xe0);
+    address peer1 = address(0x01);
+    address peer2 = address(0x02);
 
     event PingSent(
         uint256 indexed destinationChainSelector,
@@ -36,16 +34,18 @@ contract PingPongTest is Test {
         uint256 indexed sourceChainSelector,
         bytes32 messageHash
     );
-
-    event MessageSendRequested(EquitoMessage message, bytes messageData);
+    event MessageSendRequested(
+        EquitoMessage message,
+        bytes messageData
+    );
 
     function setUp() public {
-        vm.prank(OWNER);
+        vm.prank(sender);
 
         verifier = new MockVerifier();
         fees = new MockEquitoFees();
         router = new Router(
-            1,
+            0,
             address(verifier),
             address(fees),
             EquitoMessageLibrary.addressToBytes64(equitoAddress)
@@ -62,7 +62,7 @@ contract PingPongTest is Test {
 
         pingPong.setPeers(chainIds, addresses);
 
-        vm.deal(address(ALICE), 10 ether);
+        vm.deal(address(sender), 10 ether);
     }
 
     function testSendPing() public {
@@ -72,7 +72,7 @@ contract PingPongTest is Test {
 
         uint256 fee = router.getFee(address(pingPong));
 
-        vm.prank(address(ALICE));
+        vm.prank(sender);
         vm.expectEmit(true, true, true, true);
         emit PingSent(
             destinationChainSelector,
@@ -80,7 +80,7 @@ contract PingPongTest is Test {
                 abi.encode(
                     EquitoMessage({
                         blockNumber: 1,
-                        sourceChainSelector: 1,
+                        sourceChainSelector: 0,
                         sender: EquitoMessageLibrary.addressToBytes64(
                             address(pingPong)
                         ),
@@ -102,17 +102,12 @@ contract PingPongTest is Test {
             blockNumber: 1,
             sourceChainSelector: 2,
             sender: EquitoMessageLibrary.addressToBytes64(peer2),
-            destinationChainSelector: 1,
+            destinationChainSelector: 0,
             receiver: EquitoMessageLibrary.addressToBytes64(address(pingPong)),
             hashedData: keccak256(messageData)
         });
 
-        EquitoMessage[] memory messages = new EquitoMessage[](1);
-        messages[0] = message;
-        router.deliverMessages(messages, 0, abi.encode(1));
-
         uint256 feeContractBalance = address(fees).balance;
-
         uint256 fee = router.getFee(address(pingPong));
 
         vm.expectEmit(address(pingPong));
@@ -122,7 +117,7 @@ contract PingPongTest is Test {
         emit MessageSendRequested(
             EquitoMessage({
                 blockNumber: 1,
-                sourceChainSelector: 1,
+                sourceChainSelector: 0,
                 sender: EquitoMessageLibrary.addressToBytes64(
                     address(pingPong)
                 ),
@@ -133,8 +128,13 @@ contract PingPongTest is Test {
             abi.encode("pong", pingMessage)
         );
 
-        vm.prank(address(ALICE));
-        router.executeMessage{value: fee}(message, messageData);
+        vm.prank(address(sender));
+        router.deliverAndExecuteMessage{value: fee}(
+            message,
+            messageData,
+            0,
+            abi.encode(1)
+        );
 
         assertEq(address(fees).balance, feeContractBalance + fee);
     }
@@ -178,16 +178,16 @@ contract PingPongTest is Test {
         pingPong.receiveMessage(message, messageData);
     }
 
-    function testInvalidPeer() public {
-        string memory invalidMessage = "Invalid";
+    function testInvalidSender() public {
+        string memory pongMessage = "message";
 
-        bytes memory messageData = abi.encode("invalid", invalidMessage);
+        bytes memory messageData = abi.encode("pong", pongMessage);
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
             sourceChainSelector: 1,
-            sender: EquitoMessageLibrary.addressToBytes64(ALICE),
-            destinationChainSelector: 2,
-            receiver: EquitoMessageLibrary.addressToBytes64(BOB),
+            sender: EquitoMessageLibrary.addressToBytes64(address(0x00)),
+            destinationChainSelector: 0,
+            receiver: EquitoMessageLibrary.addressToBytes64(address(pingPong)),
             hashedData: keccak256(messageData)
         });
 
