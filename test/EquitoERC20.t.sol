@@ -67,11 +67,11 @@ contract EquitoERC20Test is Test {
 
         // Set the peer address in the contract
         vm.prank(OWNER);
-        uint256[] memory chainIds = new uint256[](1);
-        chainIds[0] = destinationChainSelector;
+        uint256[] memory chainSelectors = new uint256[](1);
+        chainSelectors[0] = destinationChainSelector;
         bytes64[] memory addresses = new bytes64[](1);
         addresses[0] = EquitoMessageLibrary.addressToBytes64(address(token));
-        token.setPeers(chainIds, addresses);
+        token.setPeers(chainSelectors, addresses);
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: block.number,

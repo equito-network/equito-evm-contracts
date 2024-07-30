@@ -15,7 +15,7 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
     /// @dev The Router Contract that is used to send and receive messages.
     IRouter internal immutable router;
 
-    /// @dev Mapping to store peer addresses for different chain IDs.
+    /// @dev Mapping to store peer addresses for different chain selectors.
     mapping(uint256 => bytes64) public peers;
 
     /// @notice Initializes the EquitoApp contract and set the router address.
@@ -33,23 +33,23 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
         _;
     }
 
-    /// @notice Allows the owner to set the peer addresses for different chain IDs.
-    /// @param chainIds The list of chain IDs.
-    /// @param addresses The list of addresses corresponding to the chain IDs.
-    function setPeers(uint256[] calldata chainIds, bytes64[] calldata addresses) external onlyOwner {
-        _setPeers(chainIds, addresses);
+    /// @notice Allows the owner to set the peer addresses for different chain selectors.
+    /// @param chainSelectors The list of chain selectors.
+    /// @param addresses The list of addresses corresponding to the chain selectors.
+    function setPeers(uint256[] calldata chainSelectors, bytes64[] calldata addresses) external onlyOwner {
+        _setPeers(chainSelectors, addresses);
     }
 
-    /// @notice Internal function to set the peer addresses for different chain IDs.
-    /// @param chainIds The list of chain IDs.
-    /// @param addresses The list of addresses corresponding to the chain IDs.
+    /// @notice Internal function to set the peer addresses for different chain selectors.
+    /// @param chainSelectors The list of chain selectors.
+    /// @param addresses The list of addresses corresponding to the chain selectors.
     /// @dev This function is internal to allow for easier overriding and extension by derived contracts,
     ///      facilitating the reuse of peer-setting logic in different contexts.
-    function _setPeers(uint256[] calldata chainIds, bytes64[] calldata addresses) internal virtual onlyOwner {
-        if (chainIds.length != addresses.length) revert Errors.InvalidLength();
+    function _setPeers(uint256[] calldata chainSelectors, bytes64[] calldata addresses) internal virtual onlyOwner {
+        if (chainSelectors.length != addresses.length) revert Errors.InvalidLength();
 
-        for (uint256 i = 0; i < chainIds.length; ) {
-            peers[chainIds[i]] = addresses[i];
+        for (uint256 i = 0; i < chainSelectors.length; ) {
+            peers[chainSelectors[i]] = addresses[i];
 
             unchecked { ++i; }
         }

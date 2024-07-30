@@ -112,8 +112,8 @@ contract ECDSAVerifierTest is Test {
         verifier.receiveMessage(message, abi.encode(0x01));
     }
 
-    /// @dev Tests the onlySovereign modifier with an invalid chain ID
-    function testOnlySovereignModifierWithInvalidChainId() public {
+    /// @dev Tests the onlySovereign modifier with an invalid chain selector
+    function testOnlySovereignModifierWithInvalidchainSelector() public {
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 0,
             sourceChainSelector: 1,

@@ -57,20 +57,20 @@ contract EquitoAppTest is Test {
     }
 
     /// @dev Tests the functionality of the setPeers function in EquitoApp contract.
-    ///      It sets peer addresses for two different chain IDs and verifies that the
+    ///      It sets peer addresses for two different chain selectors and verifies that the
     ///      addresses are correctly stored by the contract.
     function testSetPeers() public {
         vm.prank(OWNER);
 
-        uint256[] memory chainIds = new uint256[](2);
-        chainIds[0] = 1;
-        chainIds[1] = 2;
+        uint256[] memory chainSelectors = new uint256[](2);
+        chainSelectors[0] = 1;
+        chainSelectors[1] = 2;
 
         bytes64[] memory addresses = new bytes64[](2);
         addresses[0] = EquitoMessageLibrary.addressToBytes64(ALICE);
         addresses[1] = EquitoMessageLibrary.addressToBytes64(BOB);
 
-        app.setPeers(chainIds, addresses);
+        app.setPeers(chainSelectors, addresses);
 
         (bytes32 peer1Lower, bytes32 peer1Upper) = app.peers(1);
         (bytes32 peer2Lower, bytes32 peer2Upper) = app.peers(2);
@@ -93,13 +93,13 @@ contract EquitoAppTest is Test {
     /// @dev Tests receiveMessage logic with a valid peer
     function testReceiveMessageSuccess() public {
         vm.prank(OWNER);
-        uint256[] memory chainIds = new uint256[](1);
-        chainIds[0] = 1;
+        uint256[] memory chainSelectors = new uint256[](1);
+        chainSelectors[0] = 1;
 
         bytes64[] memory addresses = new bytes64[](1);
         addresses[0] = EquitoMessageLibrary.addressToBytes64(ALICE);
 
-        app.setPeers(chainIds, addresses);
+        app.setPeers(chainSelectors, addresses);
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,
@@ -133,13 +133,13 @@ contract EquitoAppTest is Test {
     /// @dev Tests the `receiveMessage` function when the sender address is not equal to the expected peer address.
     function testReceiveMessageUnequalSender() public {
         vm.prank(OWNER);
-        uint256[] memory chainIds = new uint256[](1);
-        chainIds[0] = 1;
+        uint256[] memory chainSelectors = new uint256[](1);
+        chainSelectors[0] = 1;
 
         bytes64[] memory addresses = new bytes64[](1);
         addresses[0] = EquitoMessageLibrary.addressToBytes64(ALICE);
 
-        app.setPeers(chainIds, addresses);
+        app.setPeers(chainSelectors, addresses);
 
         EquitoMessage memory message = EquitoMessage({
             blockNumber: 1,

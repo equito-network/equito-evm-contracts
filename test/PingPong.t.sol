@@ -52,15 +52,15 @@ contract PingPongTest is Test {
         );
         pingPong = new PingPong(address(router));
 
-        uint256[] memory chainIds = new uint256[](2);
-        chainIds[0] = 1;
-        chainIds[1] = 2;
+        uint256[] memory chainSelectors = new uint256[](2);
+        chainSelectors[0] = 1;
+        chainSelectors[1] = 2;
 
         bytes64[] memory addresses = new bytes64[](2);
         addresses[0] = EquitoMessageLibrary.addressToBytes64(peer1);
         addresses[1] = EquitoMessageLibrary.addressToBytes64(peer2);
 
-        pingPong.setPeers(chainIds, addresses);
+        pingPong.setPeers(chainSelectors, addresses);
 
         vm.deal(address(sender), 10 ether);
     }
