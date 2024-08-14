@@ -35,15 +35,10 @@ contract HelloEquito is EquitoApp {
     /// @notice Sends a hello message to the peer address on the specified chain.
     /// @param destinationChainSelector The identifier of the destination chain.
     function sendMessage(uint256 destinationChainSelector) external payable {
-        bytes64 memory receiver = peers[destinationChainSelector];
-        if (receiver.lower == 0x00 && receiver.upper == 0x00) {
-            revert("HelloEquito: invalid destination chain selector");
-        }
-
         bytes memory data = abi.encode("Hello, Equito!");
 
         bytes32 messageHash = router.sendMessage{value: msg.value}(
-            receiver,
+            getPeer(destinationChainSelector),
             destinationChainSelector,
             data
         );

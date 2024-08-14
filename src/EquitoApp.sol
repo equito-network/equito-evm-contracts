@@ -55,6 +55,20 @@ abstract contract EquitoApp is IEquitoReceiver, Ownable {
         }
     }
 
+    /// @notice Returns the peer address for a given chain selector.
+    /// @param chainSelector The chain selector for which the peer address is requested.
+    /// @return The peer address for the given chain selector.
+    /// @dev Throws an error if the chain selector is not found in the mapping.
+    function getPeer(
+        uint256 chainSelector
+    ) public view returns (bytes64 memory) {
+        bytes64 memory peerAddress = peers[chainSelector];
+        if (peerAddress.lower == 0x00 && peerAddress.upper == 0x00) {
+            revert Errors.InvalidPeer(chainSelector);
+        }
+        return peerAddress;
+    }
+
     /// @notice Receives a cross-chain message from the Router Contract.
     ///         It is a wrapper function for the `_receiveMessage` functions, that need to be overridden.
     ///         Only the Router Contract is allowed to call this function.
