@@ -58,10 +58,9 @@ contract PingPong is EquitoApp {
         string calldata message
     ) external payable {
         bytes memory data = abi.encode("ping", message);
-        bytes64 memory receiver = peers[destinationChainSelector];
 
         bytes32 messageHash = router.sendMessage{value: msg.value}(
-            receiver,
+            getPeer(destinationChainSelector),
             destinationChainSelector,
             data
         );
@@ -89,7 +88,7 @@ contract PingPong is EquitoApp {
             // send pong
             bytes memory data = abi.encode("pong", payload);
             bytes32 messageHash = router.sendMessage{value: msg.value}(
-                peers[message.sourceChainSelector],
+                getPeer(message.sourceChainSelector),
                 message.sourceChainSelector,
                 data
             );

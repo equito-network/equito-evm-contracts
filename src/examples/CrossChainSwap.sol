@@ -209,7 +209,7 @@ contract CrossChainSwap is EquitoApp {
 
         // Send the message through the router and store the returned message ID
         messageHash = router.sendMessage{value: fee}(
-            peers[destinationChainSelector],
+            getPeer(destinationChainSelector),
             destinationChainSelector,
             abi.encode(tokenAmount)
         );

@@ -20,9 +20,6 @@ contract EquitoERC20Test is Test {
     address constant BOB = address(0xB0B);
     address equitoAddress = address(0x45717569746f);
 
-    uint256 public sourceChainSelector = 1;
-    uint256 public destinationChainSelector = 2;
-
     function setUp() public {
         vm.startPrank(OWNER);
         verifier = new MockVerifier();
@@ -34,6 +31,14 @@ contract EquitoERC20Test is Test {
             EquitoMessageLibrary.addressToBytes64(equitoAddress)
         );
         token = new EquitoERC20(address(router), "Equito Token", "EQI", 1000);
+        
+        uint256[] memory chainSelectors = new uint256[](1);
+        chainSelectors[0] = 1;
+
+        bytes64[] memory addresses = new bytes64[](1);
+        addresses[0] = EquitoMessageLibrary.addressToBytes64(address(token));
+
+        token.setPeers(chainSelectors, addresses);
 
         // Mint some tokens for testing
         token.transfer(ALICE, 100);
@@ -55,7 +60,7 @@ contract EquitoERC20Test is Test {
         vm.deal(ALICE, 0.1 ether);
         token.crossChainTransfer{value: 0.1 ether}(
             receiver,
-            destinationChainSelector,
+            1,
             amount
         );
 
@@ -65,19 +70,11 @@ contract EquitoERC20Test is Test {
     function testReceiveToken() public {
         uint256 amount = 10;
 
-        // Set the peer address in the contract
-        vm.prank(OWNER);
-        uint256[] memory chainSelectors = new uint256[](1);
-        chainSelectors[0] = destinationChainSelector;
-        bytes64[] memory addresses = new bytes64[](1);
-        addresses[0] = EquitoMessageLibrary.addressToBytes64(address(token));
-        token.setPeers(chainSelectors, addresses);
-
         EquitoMessage memory message = EquitoMessage({
             blockNumber: block.number,
-            sourceChainSelector: destinationChainSelector,
+            sourceChainSelector: 1,
             sender: EquitoMessageLibrary.addressToBytes64(address(token)),
-            destinationChainSelector: sourceChainSelector,
+            destinationChainSelector: 1,
             receiver: EquitoMessageLibrary.addressToBytes64(address(token)),
             hashedData: keccak256(
                 abi.encode(EquitoMessageLibrary.addressToBytes64(BOB), amount)

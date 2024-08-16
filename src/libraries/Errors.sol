@@ -62,4 +62,8 @@ library Errors {
 
     /// @notice Thrown when the provided session ID does not match the current session.
     error InvalidSessionId();
+
+    /// @notice Thrown when a Peer address is not found in the mapping, given a chain selector.
+    /// @param chainSelector The chain selector for which the peer address is requested.
+    error InvalidPeer(uint256 chainSelector);
 }

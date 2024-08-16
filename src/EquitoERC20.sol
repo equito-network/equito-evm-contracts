@@ -36,7 +36,7 @@ contract EquitoERC20 is EquitoApp, ERC20 {
         _burn(msg.sender, amount);
         bytes memory data = abi.encode(receiver, amount);
         router.sendMessage{value: msg.value}(
-            peers[destinationChainSelector],
+            getPeer(destinationChainSelector),
             destinationChainSelector,
             data
         );
